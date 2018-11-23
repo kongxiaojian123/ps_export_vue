@@ -1,0 +1,49 @@
+html{
+    background: #535353;
+    font-size: 12px;
+    color: #f0f0f0;
+}
+hr{
+    border: none;
+    border-bottom:1px solid #454545;
+}
+pre{
+    font-family: Consolas;
+    line-height: 1.5;
+    opacity: 0.5;
+}
+.export-form{
+    display: flex;
+    text-align: center;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    height: 60px;
+}
+.flex-item{
+    min-width: 30%;
+    display: flex;
+    justify-content: center;
+}
+.export-form p{
+    display: table;
+    padding: 0 20px;
+    margin: 0;
+}
+.export-form p *{
+    display: table-cell;
+    vertical-align: middle;
+}
+.export-form input{
+    margin: 0;
+    margin-right: 5px;
+}
+.export-btn{
+    width: 100%;
+    height: 100%;
+    color: #f0f0f0;
+    border-radius: 2px;
+    background: #454545;
+    border: 2px solid #5d5d5d;
+}
