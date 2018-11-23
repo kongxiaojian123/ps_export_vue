@@ -1,0 +1,22 @@
+{
+  "name": "f2etool",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kongxiaojian123/ps_export_vue.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kongxiaojian123/ps_export_vue/issues"
+  },
+  "homepage": "https://github.com/kongxiaojian123/ps_export_vue#readme",
+  "dependencies": {
+    "fs-extra": "^7.0.1"
+  }
+}
