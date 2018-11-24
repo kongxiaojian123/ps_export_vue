@@ -1,16 +1,14 @@
-﻿var _unit = 'rpx';
-var _assetsPath = '';
+﻿var _assetsPath = '';
 var reg = new RegExp('[^a-z0-9A-Z\-]');
 var regRule = new RegExp('^(!%|vue|jpg)$');
 var regRule2 = new RegExp('\.(!%|vue|jpg)','g');
 var _documentWidth,_documentHeight;
 //exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
-function exportDocument(unit,assetsPath){
+function exportDocument(assetsPath){
     if(app.activeDocument.width.type==='%'){
         alert('Error: 文档所用单位不能为 "%"');
         return;
     }
-    _unit = unit || 'rpx';
     _assetsPath = assetsPath;
     _documentWidth = app.activeDocument.width.as("px");
     _documentHeight = app.activeDocument.height.as("px");
@@ -60,18 +58,23 @@ function setVNode(layer,root) {
     var name = root?'app.vue':layer.name;
     var vueName = '';
     var className = name.split('.');
+    var psName = '';
     for(var i = 0;i<className.length;i++){
         if(className[i].search(regRule)>=0){
             className.splice(i,1);
             i--;
         }else if(className[i].search(/ps-\d+/)<0){
             vueName += className[i].replace(/^[a-z]/,function(a){return a.toUpperCase()});
+        }else if(className[i].search(/ps-\d+/)>=0){
+            psName = className[i];
         }
     }
     return {
         name:name,
+        root:root||false,
         className:className,
         vueName:vueName,
+        psName:root?'app':psName,
         assets:'',
         bounds:{
             x:0,//相对父级
