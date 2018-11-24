@@ -50,7 +50,7 @@ function createVUE(vNode,fNode) {
             index===vNode.child.length-1&&
             lastNodeIsBackground
         )){
-            childHtml += createHTML(item,vNode,index,1);
+            childHtml = createHTML(item,vNode,index,1) + childHtml;
         }
         getModule(item,modules);
     });
@@ -193,7 +193,7 @@ function createHTML(vNode,fNode,index,tabNum){
                 index===vNode.child.length-1&&
                 lastNodeIsBackground
             )){
-                child+=createHTML(item,vNode,index,tabNum+1);
+                child = createHTML(item,vNode,index,tabNum+1)+child;
             }
         });
         return `${index ? tabSpace(tabNum) : ''}<div class="${vNode.className.join(' ')}">
