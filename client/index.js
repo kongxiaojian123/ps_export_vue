@@ -50,7 +50,7 @@ function createVUE(vNode,fNode) {
             index===vNode.child.length-1&&
             lastNodeIsBackground
         )){
-            childHtml = createHTML(item,vNode,index,1) + childHtml;
+            childHtml = createHTML(item,vNode,index===vNode.child.length-1,1) + childHtml;
         }
         getModule(item,modules);
     });
@@ -63,8 +63,7 @@ function createVUE(vNode,fNode) {
 
     const html = `<template>
     <div class="${vNode.className.join(' ')}">
-        ${childHtml}
-        ${vNode.root ? `<Loading :assets="loadAssets" @complete="loadComplete"/>
+        ${childHtml}${vNode.root ? `<Loading :assets="loadAssets" @complete="loadComplete"/>
     ` : ""}</div>
 </template>
 <script >${importStr}
@@ -120,12 +119,24 @@ function setStyle(vNode,fNode,index,tabNum) {
     };
     const lastNodeIsBackground = checkLastChild(vNode);
     if(
-        vNode.bounds._x!=documentBounds._x||
-        vNode.bounds._y!=documentBounds._y||
-        vNode.bounds.w!=documentBounds.w||
-        vNode.bounds.h!=documentBounds.h
+        vNode.bounds.x===0&&
+        vNode.bounds.y===0&&
+        vNode.bounds.w===fNode.bounds.w&&
+        vNode.bounds.h===fNode.bounds.h
     ){
-        style.left = (vNode.bounds.x).toFixed(6)*1+unit;
+        if(lastNodeIsBackground){
+            style.width = '100%';
+            style.height = '100%';
+            style.background = `url("../assets/${vNode.child[vNode.child.length-1].assets}") no-repeat center`;
+            style['background-size'] = 'cover';
+        }else if(vNode.assets){
+            style.background = `url("../assets/${vNode.assets}") no-repeat center`;
+        }else{
+            style.width = '100%';
+            style.height = '100%';
+        }
+    }else{
+        style.left = ((vNode.bounds.x+vNode.bounds.w/2)/fNode.bounds.w*100).toFixed(6)*1+'%';
         style.top = ((vNode.bounds.y+vNode.bounds.h/2)/fNode.bounds.h*100).toFixed(6)*1+'%';
         if(vNode.assets){
             style.background = `url("../assets/${vNode.assets}") no-repeat center`;
@@ -133,17 +144,11 @@ function setStyle(vNode,fNode,index,tabNum) {
             if(lastNodeIsBackground){
                 style.background = `url("../assets/${vNode.child[vNode.child.length-1].assets}") no-repeat center`;
             }else{
+                style['margin-left'] = `-${(vNode.bounds.w/2).toFixed(6)*1}${unit}`;
                 style['margin-top'] = `-${(vNode.bounds.h/2).toFixed(6)*1}${unit}`;
                 style.width = `${(vNode.bounds.w).toFixed(6)*1}${unit}`;
                 style.height = `${(vNode.bounds.h).toFixed(6)*1}${unit}`;
             }
-        }
-    }else{
-        style.width = '100%';
-        style.height = '100%';
-        if(lastNodeIsBackground){
-            style.background = `url("../assets/${vNode.child[vNode.child.length-1].assets}") no-repeat center`;
-            style['background-size'] = 'cover';
         }
     }
     let className = vNode.psName;
@@ -172,18 +177,19 @@ function setStyle(vNode,fNode,index,tabNum) {
     styleStr += `${index?tabSpace(tabNum):''}}`;
     return styleStr;
 }
-function tabSpace(num) {
+function tabSpace(num,noWrap) {
     num = num||0;
     let tab = '\n';
+    if(noWrap)tab = '';
     for(let i=0;i<num+1;i++){
         tab += '    ';
     }
     return tab;
 }
-function createHTML(vNode,fNode,index,tabNum){
+function createHTML(vNode,fNode,isLast,tabNum){
     if(vNode.name.indexOf('.vue')>=0){
         createVUE(vNode,fNode);
-        return `${index?tabSpace(tabNum):''}<${vNode.vueName}/>`
+        return `<${vNode.vueName}/>${tabSpace(tabNum)}`
     }
     const lastNodeIsBackground = checkLastChild(vNode);
     if(vNode.child){
@@ -193,14 +199,12 @@ function createHTML(vNode,fNode,index,tabNum){
                 index===vNode.child.length-1&&
                 lastNodeIsBackground
             )){
-                child = createHTML(item,vNode,index,tabNum+1)+child;
+                child = createHTML(item,vNode,index===vNode.child.length-1,tabNum+1) + child;
             }
         });
-        return `${index ? tabSpace(tabNum) : ''}<div class="${vNode.className.join(' ')}">
-            ${child}
-        </div>`
+        return `<div class="${vNode.className.join(' ')}">${child?tabSpace(tabNum+1):''}${child.replace(/    $/,'')}</div>${tabSpace(tabNum)}`
     }else{
-        return `${index ? tabSpace(tabNum) : ''}<div class="${vNode.className.join(' ')}"></div>`
+        return `<div class="${vNode.className.join(' ')}"></div>${tabSpace(tabNum)}`
     }
 }
 function getModule(vNode,list){
