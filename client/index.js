@@ -124,16 +124,14 @@ function setStyle(vNode,fNode,index,tabNum) {
         vNode.bounds.w===fNode.bounds.w&&
         vNode.bounds.h===fNode.bounds.h
     ){
+        style.width = '100%';
+        style.height = '100%';
         if(lastNodeIsBackground){
-            style.width = '100%';
-            style.height = '100%';
             style.background = `url("../assets/${vNode.child[vNode.child.length-1].assets}") no-repeat center`;
             style['background-size'] = 'cover';
         }else if(vNode.assets){
             style.background = `url("../assets/${vNode.assets}") no-repeat center`;
-        }else{
-            style.width = '100%';
-            style.height = '100%';
+            style['background-size'] = 'cover';
         }
     }else{
         style.left = ((vNode.bounds.x+vNode.bounds.w/2)/fNode.bounds.w*100).toFixed(6)*1+'%';
