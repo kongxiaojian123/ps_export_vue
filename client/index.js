@@ -8,12 +8,12 @@ const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
 exportButton.addEventListener("click", ()=>{
-    for(let item of units){
-        if(item.checked){
-            unit = item.value;
-            break;
-        }
-    }
+    // for(let item of units){
+    //     if(item.checked){
+    //         unit = item.value;
+    //         break;
+    //     }
+    // }
     fs.exists(save_path,(isExist)=>{
         if(isExist){
             fs.removeSync(save_path);
