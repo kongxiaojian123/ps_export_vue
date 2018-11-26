@@ -616,9 +616,24 @@ function mapLayers(layers) {
         focusLayer(layer.name);
         copyLayer();
         if(!app.activeDocument.activeLayer.isBackgroundLayer){
+            var bounds = app.activeDocument.layers[0].bounds;
+            bounds = [
+                Math.max(0,bounds[0].as("px")),
+                Math.max(0,bounds[1].as("px")),
+                Math.min(app.activeDocument.width.as("px"),bounds[2].as("px")),
+                Math.min(app.activeDocument.height.as("px"),bounds[3].as("px")),
+            ];
+            layer.vNode.bounds._x = bounds[0];
+            layer.vNode.bounds._y = bounds[1];
+            layer.vNode.bounds.w = bounds[2] - layer.vNode.bounds._x;
+            layer.vNode.bounds.h = bounds[3] - layer.vNode.bounds._y;
+            app.activeDocument.resizeCanvas(UnitValue((app.activeDocument.width.as("px")-bounds[0])+" px"),UnitValue((app.activeDocument.height.as("px")-bounds[1])+" px"),AnchorPosition.BOTTOMRIGHT);
+            app.activeDocument.resizeCanvas(UnitValue(layer.vNode.bounds.w+" px"),UnitValue(layer.vNode.bounds.h+" px"),AnchorPosition.TOPLEFT);
+            var initWidth = app.activeDocument.width.as("px");
+            var initHeight = app.activeDocument.height.as("px");
             app.activeDocument.trim(TrimType.TRANSPARENT,true,true,false,false);
-            layer.vNode.bounds._x = _documentWidth - app.activeDocument.width.as("px");
-            layer.vNode.bounds._y = _documentHeight - app.activeDocument.height.as("px");
+            layer.vNode.bounds._x += initWidth - app.activeDocument.width.as("px");
+            layer.vNode.bounds._y += initHeight - app.activeDocument.height.as("px");
             layer.vNode.bounds.x = layer.vNode.bounds._x - layers.parent.vNode.bounds._x;
             layer.vNode.bounds.y = layer.vNode.bounds._y - layers.parent.vNode.bounds._y;
             app.activeDocument.trim(TrimType.TRANSPARENT,false,false,true,true);
