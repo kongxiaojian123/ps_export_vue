@@ -1,7 +1,7 @@
 ﻿var _assetsPath = '';
 var reg = new RegExp('[^a-z0-9A-Z\-]');
-var regRule = new RegExp('^(!%|vue|jpg)$');
-var regRule2 = new RegExp('\.(!%|vue|jpg)','g');
+var regRule = new RegExp('^(!%|vue|jpg|box)$');
+var regRule2 = new RegExp('\.(!%|vue|jpg|box)','g');
 var _documentWidth,_documentHeight;
 //exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
 function exportDocument(assetsPath){
