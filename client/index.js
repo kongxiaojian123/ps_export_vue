@@ -172,28 +172,32 @@ function setStyle(vNode,fNode,index,tabNum) {
     }else{
         style.left = ((vNode.bounds.x+vNode.bounds.w/2)/fNode.bounds.w*100).toFixed(6)*1+'%';
         style.top = ((vNode.bounds.y+vNode.bounds.h/2)/fNode.bounds.h*100).toFixed(6)*1+'%';
+        style['margin-left'] = `-${(vNode.bounds.w/2).toFixed(6)*1}${unit}`;
+        style['margin-top'] = `-${(vNode.bounds.h/2).toFixed(6)*1}${unit}`;
+        style.width = `${(vNode.bounds.w).toFixed(6)*1}${unit}`;
+        style.height = `${(vNode.bounds.h).toFixed(6)*1}${unit}`;
         if(vNode.assets){
             style.background = `url("../assets/${vNode.assets}") no-repeat center`;
         }else{
             if(lastNodeIsBackground){
                 style.background = `url("../assets/${vNode.child[vNode.child.length-1].assets}") no-repeat center`;
             }else{
-                style['margin-left'] = `-${(vNode.bounds.w/2).toFixed(6)*1}${unit}`;
-                style['margin-top'] = `-${(vNode.bounds.h/2).toFixed(6)*1}${unit}`;
-                style.width = `${(vNode.bounds.w).toFixed(6)*1}${unit}`;
-                style.height = `${(vNode.bounds.h).toFixed(6)*1}${unit}`;
+                // style['margin-left'] = `-${(vNode.bounds.w/2).toFixed(6)*1}${unit}`;
+                // style['margin-top'] = `-${(vNode.bounds.h/2).toFixed(6)*1}${unit}`;
+                // style.width = `${(vNode.bounds.w).toFixed(6)*1}${unit}`;
+                // style.height = `${(vNode.bounds.h).toFixed(6)*1}${unit}`;
             }
         }
     }
     let className = vNode.psName;
-    if(vNode.className.length ===1) className = vNode.className[0];
-    else if(vNode.className.length ===2){
-        if(vNode.className[0].search(/^ps-\d+$/)>=0){
-            className = vNode.className[1];
-        }else{
-            className = vNode.className[0];
-        }
-    }
+    // if(vNode.className.length ===1) className = vNode.className[0];
+    // else if(vNode.className.length ===2){
+    //     if(vNode.className[0].search(/^ps-\d+$/)>=0){
+    //         className = vNode.className[1];
+    //     }else{
+    //         className = vNode.className[0];
+    //     }
+    // }
     let styleStr = `${index?tabSpace(tabNum):''}.${className}{`;
     Object.keys(style).forEach(item=>{
         styleStr += `${tabSpace(tabNum+1)}${item}:${style[item]};`;
