@@ -15,7 +15,7 @@ if(localStorage.getItem('gitDate')){
     timeDiv.innerHTML = `${timeDate.getFullYear()}.${timeDate.getMonth()+1}.${timeDate.getDate()}`;
 }
 exportButton.addEventListener("click", ()=>{
-    alert(1111);
+    alert(222);
     // for(let item of units){
     //     if(item.checked){
     //         unit = item.value;
