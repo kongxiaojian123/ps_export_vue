@@ -10,6 +10,10 @@ const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
 let today  = 0;
+if(localStorage.getItem('gitDate')){
+    const timeDate = new Date(localStorage.getItem('gitDate')*1);
+    timeDiv.innerHTML = `${timeDate.getFullYear()}.${timeDate.getMonth()+1}.${timeDate.getDate()}`;
+}
 exportButton.addEventListener("click", ()=>{
     // for(let item of units){
     //     if(item.checked){
@@ -70,7 +74,6 @@ function updateNode(cwd) {
     const cmdStr = /^win/.test(process.platform) ? 'cnpm.cmd' : 'cnpm';
     spawn(cmdStr, ['i'],{cwd:cwd}).on('close',()=>{
         localStorage.setItem('gitDate',today.getTime());
-        timeDiv.innerHTML = `${today.getFullYear()}.${today.getMonth()+1}.${today.getDate()}`;
         console.log('插件已更新');
     });
 }
