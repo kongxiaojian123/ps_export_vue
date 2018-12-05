@@ -640,7 +640,7 @@ function mapLayers(layers) {
             layer.vNode.bounds.w = app.activeDocument.width.as("px");
             layer.vNode.bounds.h =  app.activeDocument.height.as("px");
         }
-        if(!layer.layers){
+        if((!layer.layers)&&(layer.name.indexOf('.box')<0)){
             layer.vNode.assets = layer.name.replace(regRule2,'');
             if(layer.name.indexOf(".jpg")>=0){
                 layer.vNode.assets += '.jpg';
