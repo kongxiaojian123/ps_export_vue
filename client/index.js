@@ -69,6 +69,7 @@ function updateNode(cwd) {
     const cmdStr = /^win/.test(process.platform) ? 'cnpm.cmd' : 'cnpm';
     spawn(cmdStr, ['i'],{cwd:cwd}).on('close',()=>{
         localStorage.setItem('gitDate',today.getTime());
+        alert('已更新');
     });
 }
 function createVUE(vNode,fNode) {
