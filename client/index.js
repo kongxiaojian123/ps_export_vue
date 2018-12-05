@@ -44,6 +44,7 @@ exportButton.addEventListener("click", ()=>{
     });
 });
 function pullCode() {
+    alert('啦啦啦');
     today = new Date();
     today.setHours(0,0,0,0);
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
@@ -69,7 +70,6 @@ function updateNode(cwd) {
     const cmdStr = /^win/.test(process.platform) ? 'cnpm.cmd' : 'cnpm';
     spawn(cmdStr, ['i'],{cwd:cwd}).on('close',()=>{
         localStorage.setItem('gitDate',today.getTime());
-        alert('已更新');
     });
 }
 function createVUE(vNode,fNode) {
@@ -109,7 +109,7 @@ function createVUE(vNode,fNode) {
         },
         methods:{
             ${vNode.root?`loadComplete(){
-                console.log(111);
+                console.log('load complete');
             }`:""}
         },
         components:{
