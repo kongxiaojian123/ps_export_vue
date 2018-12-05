@@ -8,6 +8,7 @@ const exportButton = document.querySelector(".export-btn");
 const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
+let today  = 0;
 exportButton.addEventListener("click", ()=>{
     // for(let item of units){
     //     if(item.checked){
@@ -43,7 +44,7 @@ exportButton.addEventListener("click", ()=>{
     });
 });
 function pullCode() {
-    const today = new Date();
+    today = new Date();
     today.setHours(0,0,0,0);
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
         if(isExist){
@@ -64,7 +65,8 @@ function pullCode() {
     });
 }
 function updateNode(cwd) {
-    spawn('cnpm', ['i'],{cwd:cwd}).on('close',()=>{
+    const cmdStr = /^win/.test(process.platform) ? 'cnpm.cmd' : 'cnpm';
+    spawn(cmdStr, ['i'],{cwd:cwd}).on('close',()=>{
         localStorage.setItem('gitDate',today.getTime());
     });
 }
