@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const { spawn,spawnSync } = require('child_process');
 const path = require('path');
 const desktop_path = getDesktop();
@@ -8,27 +8,6 @@ const exportButton = document.querySelector(".export-btn");
 const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
-fs.removeSync = function removeSync(dir) {
-    let arr = [dir];
-    let current = null;
-    let index = 0;
-
-    while(current = arr[index++]) {
-        let stat = fs.statSync(current);
-        if (stat.isDirectory()) {
-            let files = fs.readdirSync(current);
-            arr = [...arr, ...files.map(file => path.join(current, file))];
-        }
-    }
-    for (var i = arr.length - 1; i >= 0; i--) {
-        let stat = fs.statSync(arr[i]);
-        if (stat.isDirectory()) {
-            fs.rmdirSync(arr[i]);
-        } else {
-            fs.unlinkSync(arr[i]);
-        }
-    }
-}
 exportButton.addEventListener("click", ()=>{
     // for(let item of units){
     //     if(item.checked){
@@ -71,14 +50,22 @@ function pullCode() {
             const gitDate = localStorage.getItem('gitDate')||0;
             if(gitDate<=today.getTime()){
                 spawn('git', ['pull'],{cwd:__dirname}).on('close',()=>{
-                    localStorage.setItem('gitDate',today.getTime());
+                    updateNode(__dirname);
                 });
             }
         }else{
             spawn('git', ['clone','git@github.com:kongxiaojian123/ps_export_vue.git'],{cwd:__dirname}).on('close',()=>{
-                localStorage.setItem('gitDate',today.getTime());
+                fs.move(path.resolve(__dirname,'ps_export_vue'), __dirname, { overwrite: true }, err => {
+                    if (err) return console.error(err);
+                    updateNode(__dirname);
+                })
             });
         }
+    });
+}
+function updateNode(cwd) {
+    spawn('cnpm', ['i'],{cwd:cwd}).on('close',()=>{
+        localStorage.setItem('gitDate',today.getTime());
     });
 }
 function createVUE(vNode,fNode) {
