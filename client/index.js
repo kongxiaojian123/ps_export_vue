@@ -64,14 +64,22 @@ exportButton.addEventListener("click", ()=>{
     });
 });
 function pullCode() {
-    const gitDate = localStorage.getItem('gitDate')||0;
     const today = new Date();
     today.setHours(0,0,0,0);
-    if(gitDate<=today.getTime()){
-        spawn('git', ['pull'],{cwd:__dirname}).on('close',()=>{
-            localStorage.setItem('gitDate',today.getTime());
-        });
-    }
+    fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
+        if(isExist){
+            const gitDate = localStorage.getItem('gitDate')||0;
+            if(gitDate<=today.getTime()){
+                spawn('git', ['pull'],{cwd:__dirname}).on('close',()=>{
+                    localStorage.setItem('gitDate',today.getTime());
+                });
+            }
+        }else{
+            spawn('git', ['clone','git@github.com:kongxiaojian123/ps_export_vue.git'],{cwd:__dirname}).on('close',()=>{
+                localStorage.setItem('gitDate',today.getTime());
+            });
+        }
+    });
 }
 function createVUE(vNode,fNode) {
     let childHtml = '';
