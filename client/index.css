@@ -47,3 +47,9 @@ pre{
     background: #454545;
     border: 2px solid #5d5d5d;
 }
+time{
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0.3;
+}

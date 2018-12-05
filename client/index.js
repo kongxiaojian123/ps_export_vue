@@ -5,6 +5,7 @@ const desktop_path = getDesktop();
 const save_path = path.resolve(desktop_path,'ps_f2e');
 const csInterface = new CSInterface();
 const exportButton = document.querySelector(".export-btn");
+const timeDiv = document.querySelector(".time");
 const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
@@ -69,6 +70,7 @@ function updateNode(cwd) {
     const cmdStr = /^win/.test(process.platform) ? 'cnpm.cmd' : 'cnpm';
     spawn(cmdStr, ['i'],{cwd:cwd}).on('close',()=>{
         localStorage.setItem('gitDate',today.getTime());
+        timeDiv.innerHTML = `${today.getFullYear()}.${today.getMonth()+1}.${today.getDate()}`;
         console.log('插件已更新');
     });
 }
