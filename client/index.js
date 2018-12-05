@@ -55,8 +55,9 @@ function pullCode() {
                 });
             }
         }else{
-            spawn('git', ['clone','git@github.com:kongxiaojian123/ps_export_vue.git'],{cwd:__dirname}).on('close',()=>{
-                fs.move(path.resolve(__dirname,'ps_export_vue'), __dirname, { overwrite: true }, err => {
+            const gitAssets = path.resolve(desktop_path,'../');
+            spawn('git', ['clone','git@github.com:kongxiaojian123/ps_export_vue.git'],{cwd:gitAssets}).on('close',()=>{
+                fs.move(path.resolve(gitAssets,'ps_export_vue'), __dirname, { overwrite: true }, err => {
                     if (err) return console.error(err);
                     updateNode(__dirname);
                 })
