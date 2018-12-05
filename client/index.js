@@ -49,7 +49,7 @@ function pullCode() {
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
         if(isExist){
             const gitDate = localStorage.getItem('gitDate')||0;
-            if(gitDate<=today.getTime()){
+            if(gitDate<today.getTime()){
                 spawn('git', ['pull'],{cwd:__dirname}).on('close',()=>{
                     updateNode(__dirname);
                 });
