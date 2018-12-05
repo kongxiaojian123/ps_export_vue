@@ -41,7 +41,7 @@ exportButton.addEventListener("click", ()=>{
                         pullCode();
                         const vNode = JSON.parse(result);
                         documentBounds = vNode.bounds;
-                        console.log(vNode);
+                        // console.log(vNode);
                         createVUE(vNode);
                     });
                 });
