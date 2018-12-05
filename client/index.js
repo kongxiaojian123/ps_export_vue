@@ -1,4 +1,5 @@
-const fs = require('fs-extra');
+const fs = require('fs');
+const { spawn,spawnSync } = require('child_process');
 const path = require('path');
 const desktop_path = getDesktop();
 const save_path = path.resolve(desktop_path,'ps_f2e');
@@ -7,6 +8,27 @@ const exportButton = document.querySelector(".export-btn");
 const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let documentBounds= null;
+fs.removeSync = function removeSync(dir) {
+    let arr = [dir];
+    let current = null;
+    let index = 0;
+
+    while(current = arr[index++]) {
+        let stat = fs.statSync(current);
+        if (stat.isDirectory()) {
+            let files = fs.readdirSync(current);
+            arr = [...arr, ...files.map(file => path.join(current, file))];
+        }
+    }
+    for (var i = arr.length - 1; i >= 0; i--) {
+        let stat = fs.statSync(arr[i]);
+        if (stat.isDirectory()) {
+            fs.rmdirSync(arr[i]);
+        } else {
+            fs.unlinkSync(arr[i]);
+        }
+    }
+}
 exportButton.addEventListener("click", ()=>{
     // for(let item of units){
     //     if(item.checked){
@@ -31,9 +53,9 @@ exportButton.addEventListener("click", ()=>{
                         if (err) {
                             return console.error(err);
                         }
+                        pullCode();
                         const vNode = JSON.parse(result);
                         documentBounds = vNode.bounds;
-                        console.log(vNode);
                         createVUE(vNode);
                     });
                 });
@@ -41,6 +63,16 @@ exportButton.addEventListener("click", ()=>{
         });
     });
 });
+function pullCode() {
+    const gitDate = localStorage.getItem('gitDate')||0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if(gitDate<=today.getTime()){
+        spawn('git', ['pull'],{cwd:__dirname}).on('close',()=>{
+            localStorage.setItem('gitDate',today.getTime());
+        });
+    }
+}
 function createVUE(vNode,fNode) {
     let childHtml = '';
     let modules = [];
@@ -161,7 +193,7 @@ function setStyle(vNode,fNode,index,tabNum) {
     let styleStr = `${index?tabSpace(tabNum):''}.${className}{`;
     Object.keys(style).forEach(item=>{
         styleStr += `${tabSpace(tabNum+1)}${item}:${style[item]};`;
-    }); 
+    });
     if(vNode.child){
         vNode.child.forEach((item,index)=>{
             if(
