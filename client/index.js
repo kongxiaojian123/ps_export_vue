@@ -52,6 +52,7 @@ exportButton.addEventListener("click", ()=>{
 function pullCode() {
     today = new Date();
     today.setHours(0,0,0,0);
+    console.log('test');
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
         if(isExist){
             const gitDate = localStorage.getItem('gitDate')||0;
