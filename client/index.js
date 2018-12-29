@@ -252,7 +252,7 @@ function getModule(vNode,list){
 }
 function getDesktop() {
     let HOMEDRIVE = '';
-    if(process.env.OS.search(/windows/i)>=0){
+    if(process.env.OS&&process.env.OS.search(/windows/i)>=0){
         if(process.env.USERPATH) return path.resolve(process.env.USERPATH,'Desktop');
         HOMEDRIVE = process.env.HOMEDRIVE;
     }
