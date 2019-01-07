@@ -9,5 +9,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "fs-extra": "^7.0.1"
   }
 }
