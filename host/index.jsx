@@ -1,21 +1,27 @@
 ﻿var _assetsPath = '';
-var reg = new RegExp('[^a-z0-9A-Z\-]');
-var regRule = new RegExp('^(!%|vue|jpg|box)$');
-var regRule2 = new RegExp('\.(!%|vue|jpg|box)','g');
-var _documentWidth,_documentHeight;
-//exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
+var vnodeObj = null;
+var regRule = new RegExp('\.(vue|jpg)','g');
+// exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
 function exportDocument(assetsPath){
     if(app.activeDocument.width.type==='%'){
         alert('Error: 文档所用单位不能为 "%"');
         return;
     }
     _assetsPath = assetsPath;
-    _documentWidth = app.activeDocument.width.as("px");
-    _documentHeight = app.activeDocument.height.as("px");
-    focusLayer(app.activeDocument.layers[0].name);
-    app.activeDocument.vNode = setVNode(app.activeDocument,true);
-    doForcedProgress( 'export . . .', 'mapLayers(app.activeDocument.layers)' );
-    return toJSON(app.activeDocument.vNode);
+    vnodeObj = getInfo();
+    parseVnode(vnodeObj);
+    return toJSON(vnodeObj);
+}
+function getInfo() {
+    var info ;
+    var docRef = new ActionReference();
+    var desc = new ActionDescriptor();
+    var JSONid = stringIDToTypeID("json");
+    docRef.putProperty(charIDToTypeID('Prpr'), JSONid);
+    docRef.putEnumerated(stringIDToTypeID("document"), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+    desc.putReference(charIDToTypeID('null'), docRef);
+    return eval('info = ' + executeAction(charIDToTypeID( "getd" ), desc, DialogModes.NO).getString(JSONid));
+    return info;
 }
 function toJSON(object) {
     var json = '{';
@@ -54,54 +60,150 @@ function toJSON(object) {
     json +='}';
     return json;
 }
-function setVNode(layer,root) {
-    var name = root?'app.vue':layer.name;
-    var vueName = '';
-    var className = name.split('.');
-    var psName = '';
-    for(var i = 0;i<className.length;i++){
-        if(className[i].search(regRule)>=0){
-            className.splice(i,1);
-            i--;
-        }else if(className[i].search(/ps-\d+/)<0){
-            vueName += className[i].replace(/^[a-z]/,function(a){return a.toUpperCase()});
-        }else if(className[i].search(/ps-\d+/)>=0){
-            psName = className[i];
+function selectLayerById(id){
+    var ref = new ActionReference();
+    ref.putIdentifier(stringIDToTypeID('layer'),id);
+    var desc = new ActionDescriptor();
+    desc.putReference(stringIDToTypeID("null"),ref);
+    desc.putBoolean(stringIDToTypeID( "makeVisible" ),false);
+    executeAction(stringIDToTypeID("select"), desc,DialogModes.NO);
+}
+function parseVnode(vnode,parentVnode) {
+    if(vnode.file){
+        vnode.file = vnode.file.replace(/\\/g,'\\\\');
+        vnode.bounds.bottom = app.activeDocument.height.as("px");
+        vnode.bounds.right = app.activeDocument.width.as("px");
+    }else{
+        updateBounds(vnode,parentVnode);
+    }
+    if(vnode.layers){
+        var _child = vnode.layers[vnode.layers.length-1];
+        if(!_child.layers){
+            updateBounds(_child,vnode);
+            if(
+                _child.boundsWithParent.left ===0&&
+                _child.boundsWithParent.top ===0&&
+                _child.boundsWithParent.right ===0&&
+                _child.boundsWithParent.bottom ===0
+            ){
+                vnode.backgroundStyle = vnode.layers.pop();
+            }
+        }
+        for(var i = 0;i<vnode.layers.length;i++){
+            parseVnode(vnode.layers[i],vnode);
         }
     }
-    return {
-        name:name,
-        root:root||false,
-        className:className,
-        vueName:vueName,
-        psName:root?'app':psName,
-        assets:'',
-        bounds:{
-            x:0,//相对父级
-            y:0,//相对父级
-            _x:0,//全局定位
-            _y:0,//全局定位
-            w:_documentWidth,
-            h:_documentHeight,
-        },
-        child:null,
-    }
 }
-function focusLayer(name) {
-    var idslct = charIDToTypeID( "slct" );
-    var desc1574 = new ActionDescriptor();
-    var idnull = charIDToTypeID( "null" );
-    var ref1218 = new ActionReference();
-    var idLyr = charIDToTypeID( "Lyr " );
-    ref1218.putName( idLyr, name );
-    desc1574.putReference( idnull, ref1218 );
-    var idMkVs = charIDToTypeID( "MkVs" );
-    desc1574.putBoolean( idMkVs, false );
-    var idLyrI = charIDToTypeID( "LyrI" );
-    var list876 = new ActionList();
-    list876.putInteger( 7386 );
-    desc1574.putList( idLyrI, list876 );
-    executeAction( idslct, desc1574, DialogModes.NO );
+function updateBounds(vnode,parentVnode) {
+    selectLayerById(vnode.id);
+    rename();
+    var activeLayer = app.activeDocument.activeLayer;
+    vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
+    vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
+    vnode.bounds.right = activeLayer.boundsNoEffects[2].as("px");
+    vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
+    vnode.width = vnode.bounds.right - vnode.bounds.left;
+    vnode.height = vnode.bounds.bottom - vnode.bounds.top;
+    vnode.boundsWithParent = {
+        top:vnode.bounds.top-parentVnode.bounds.top,
+        left:vnode.bounds.left-parentVnode.bounds.left,
+        bottom:parentVnode.bounds.bottom-vnode.bounds.bottom,
+        right:parentVnode.bounds.right-vnode.bounds.right
+    };
+    if(
+        vnode.type === 'shapeLayer'&&
+        vnode.path.pathComponents.length === 1&&
+        (
+            vnode.path.pathComponents[0].origin.type === 'rect'||
+            vnode.path.pathComponents[0].origin.type === 'ellipse'||
+            vnode.path.pathComponents[0].origin.type === 'roundedRect'||
+            (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)===vnode.strokeStyle.strokeStyleLineWidth)
+        )
+    ){
+        if(!vnode.strokeStyle){
+            vnode.strokeStyle = {
+                type:vnode.path.pathComponents[0].origin.type,
+                strokeEnabled:false,
+                fillEnabled:true,
+                strokeColor:{red:0,green:0,blue:0},
+                fillColor:vnode.fill.color,
+            }
+        }else{
+            vnode.strokeStyle.type = vnode.path.pathComponents[0].origin.type;
+            vnode.strokeStyle.strokeColor = vnode.strokeStyle.strokeStyleContent.color;
+            delete vnode.strokeStyle.strokeStyleContent;
+            vnode.strokeStyle.fillColor = vnode.fill.color;
+        }
+        delete vnode.fill;
+        switch (vnode.strokeStyle.type) {
+            case 'rect': case 'line':
+                vnode.strokeStyle.radii = 0;
+                break;
+            case 'ellipse':
+                vnode.strokeStyle.radii = '50%';
+                break;
+            case 'roundedRect':
+                vnode.strokeStyle.radii = [
+                    vnode.path.pathComponents[0].origin.radii[3],
+                    vnode.path.pathComponents[0].origin.radii[0],
+                    vnode.path.pathComponents[0].origin.radii[1],
+                    vnode.path.pathComponents[0].origin.radii[2],
+                ];
+                break;
+        }
+        delete vnode.path;
+        vnode.style = vnode.strokeStyle;
+        delete vnode.strokeStyle;
+    }else if(vnode.type === 'textLayer'){
+        //文字
+        var textItem = activeLayer.textItem;
+        vnode.text = textItem.contents;
+        try{ textItem.bold = textItem.fauxBold; }catch(e){ textItem.bold = false; }
+        try{ textItem.italic = textItem.fauxItalic; }catch(e){ textItem.italic = false; }
+        try{ textItem.lineHeight = textItem.leading.as('px') }catch(e){ textItem.lineHeight = 'auto'; }
+        try{ textItem.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?'none':'underline' }catch(e){ textItem.textDecoration = 'none'; }
+        textItem.textAlign = 'left';
+        if(textItem.justification === Justification.CENTER){
+            textItem.textAlign = 'center';
+        }else if(textItem.justification === Justification.RIGHT){
+            textItem.textAlign = 'right';
+        }
+        vnode.style = {
+            color:textItem.color.rgb,
+            size:textItem.size.as('px'),
+            direction:textItem.direction===Direction.HORIZONTAL?"horizontal":"vertical",
+            bold:textItem.bold,
+            italic:textItem.italic,
+            lineHeight:textItem.lineHeight,
+            kind:textItem.kind === TextType.POINTTEXT?'text':'textbox',
+            bounds:{
+                top:textItem.position[1].as('px'),
+                left:textItem.position[0].as('px'),
+                bottom:textItem.height.as('px')+textItem.position[0].as('px'),
+                right:textItem.width.as('px')+textItem.position[0].as('px'),
+            },
+            textAlign:textItem.textAlign,
+            textDecoration:textItem.textDecoration,
+            textDecoration:textItem.textDecoration,
+        };
+    }else if(vnode.type === 'layer'){
+        //不是普通形状
+        if(vnode.smartObject)delete vnode.smartObject;
+        copyLayer();
+        var name = vnode.name.replace(regRule,'');
+        vnode.style = {
+            backgroundImage:name+'.'+vnode.id,
+        };
+        if(vnode.name.indexOf('.jpg')>=0){
+            vnode.style.backgroundImage+='.jpg';
+            savePNG(vnode.style.backgroundImage);
+        }else{
+            vnode.style.backgroundImage+='.png';
+            saveJPG(vnode.style.backgroundImage);
+        }
+        app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+    }
+    if(vnode.strokeStyle)delete vnode.strokeStyle;
 }
 function copyLayer() {
     //复制图层
@@ -122,6 +224,9 @@ function copyLayer() {
     var idVrsn = charIDToTypeID( "Vrsn" );
     desc1561.putInteger( idVrsn, 5 );
     executeAction( idMk, desc1561, DialogModes.NO );
+    if(!app.activeDocument.activeLayer.isBackgroundLayer){
+        app.activeDocument.trim(TrimType.TRANSPARENT,true,true,true,true);
+    }
 }
 function savePNG(name) {
     var idExpr = charIDToTypeID( "Expr" );
@@ -140,6 +245,7 @@ function savePNG(name) {
     desc715.putString( idovFN, name );
     var idFmt = charIDToTypeID( "Fmt " );
     var idIRFm = charIDToTypeID( "IRFm" );
+
     var idPNtwofour = charIDToTypeID( "PN24" );
     desc715.putEnumerated( idFmt, idIRFm, idPNtwofour );
     var idIntr = charIDToTypeID( "Intr" );
@@ -164,6 +270,7 @@ function savePNG(name) {
     var idSTsl = charIDToTypeID( "STsl" );
     var idSLAl = charIDToTypeID( "SLAl" );
     desc715.putEnumerated( idSWsl, idSTsl, idSLAl );
+
     var idSWch = charIDToTypeID( "SWch" );
     var idSTch = charIDToTypeID( "STch" );
     var idCHsR = charIDToTypeID( "CHsR" );
@@ -372,6 +479,7 @@ function saveJPG(name) {
     desc1352.putString( idovFN, name );
     var idFmt = charIDToTypeID( "Fmt " );
     var idIRFm = charIDToTypeID( "IRFm" );
+
     var idJPEG = charIDToTypeID( "JPEG" );
     desc1352.putEnumerated( idFmt, idIRFm, idJPEG );
     var idIntr = charIDToTypeID( "Intr" );
@@ -406,6 +514,7 @@ function saveJPG(name) {
     desc1352.putBoolean( idSHTM, false );
     var idSImg = charIDToTypeID( "SImg" );
     desc1352.putBoolean( idSImg, true );
+
     var idSWsl = charIDToTypeID( "SWsl" );
     var idSTsl = charIDToTypeID( "STsl" );
     var idSLAl = charIDToTypeID( "SLAl" );
@@ -601,88 +710,18 @@ function saveJPG(name) {
     desc1351.putObject( idUsng, idSaveForWeb, desc1352 );
     executeAction( idExpr, desc1351, DialogModes.NO );
 }
-function mapLayers(layers) {
-    //遍历图层
-    if(!layers.parent.vNode.child) layers.parent.vNode.child = [];
-    for(var i = 0;i < layers.length;i++){
-        var layer = layers[i];
-        if(
-            !layer.opacity||
-            !layer.visible||
-            (layer.layers&&!layer.layers.length)
-        ) continue;
-        rename(layer);
-        layer.vNode = setVNode(layer);
-        focusLayer(layer.name);
-        copyLayer();
-        if(!app.activeDocument.activeLayer.isBackgroundLayer){
-            var bounds = app.activeDocument.layers[0].bounds;
-            bounds = [
-                Math.max(0,bounds[0].as("px")),
-                Math.max(0,bounds[1].as("px")),
-                Math.min(app.activeDocument.width.as("px"),bounds[2].as("px")),
-                Math.min(app.activeDocument.height.as("px"),bounds[3].as("px")),
-            ];
-            layer.vNode.bounds._x = bounds[0];
-            layer.vNode.bounds._y = bounds[1];
-            layer.vNode.bounds.w = bounds[2] - layer.vNode.bounds._x;
-            layer.vNode.bounds.h = bounds[3] - layer.vNode.bounds._y;
-            app.activeDocument.resizeCanvas(UnitValue((app.activeDocument.width.as("px")-bounds[0])+" px"),UnitValue((app.activeDocument.height.as("px")-bounds[1])+" px"),AnchorPosition.BOTTOMRIGHT);
-            app.activeDocument.resizeCanvas(UnitValue(layer.vNode.bounds.w+" px"),UnitValue(layer.vNode.bounds.h+" px"),AnchorPosition.TOPLEFT);
-            var initWidth = app.activeDocument.width.as("px");
-            var initHeight = app.activeDocument.height.as("px");
-            app.activeDocument.trim(TrimType.TRANSPARENT,true,true,false,false);
-            layer.vNode.bounds._x += initWidth - app.activeDocument.width.as("px");
-            layer.vNode.bounds._y += initHeight - app.activeDocument.height.as("px");
-            layer.vNode.bounds.x = layer.vNode.bounds._x - layers.parent.vNode.bounds._x;
-            layer.vNode.bounds.y = layer.vNode.bounds._y - layers.parent.vNode.bounds._y;
-            app.activeDocument.trim(TrimType.TRANSPARENT,false,false,true,true);
-            layer.vNode.bounds.w = app.activeDocument.width.as("px");
-            layer.vNode.bounds.h =  app.activeDocument.height.as("px");
-        }
-        if((!layer.layers)&&(layer.name.indexOf('.box')<0)){
-            layer.vNode.assets = layer.name.replace(regRule2,'');
-            if(layer.name.indexOf(".jpg")>=0){
-                layer.vNode.assets += '.jpg';
-                saveJPG(layer.vNode.assets);
-            }else{
-                layer.vNode.assets += '.png';
-                savePNG(layer.vNode.assets);
-            }
-        }
-        app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-        layers.parent.vNode.child.push(layer.vNode);
-        if(layer.layers){
-            // 图层组
-            mapLayers(layer.layers);
-        }else{
-
-        }
-    }
-}
-function rename(layer) {
-    var names = layer.name.toLowerCase().replace(/\s/g,'').split('.');
-    var save_name = [];
-    var num = 0;//中文文字次数
+function rename() {
+    var activeLayer = app.activeDocument.activeLayer;
+    var names = activeLayer.name.toLowerCase().replace(/\s/g,'').split('.');
     for (var i = 0;i<names.length;i++){
         if(names[i].search(regRule)<0){
-            var id = names[i].match(/ps-(\d+)/);
-            if(id&&id[1] !== layer.id){
-                names[i] = 'ps-'+layer.id;
-            }
-            if(names[i].search(reg)>=0||names[i].search(/^(\d+)$/)>=0||!names[i]){
-                if(!num){
-                    num++;
-                    names[i] = 'ps-'+layer.id;
-                    continue;
-                }
-                num++;
+            if(names[i].search(/[^\w-]/)>=0){
                 names.splice(i--,1);
             }
         }
     }
-    layer.name = names.join('.');
-    if(layer.name.indexOf('ps-'+layer.id)<0){
-        layer.name += '.ps-' + layer.id;
+    if(!names.join('.').replace(regRule,'')){
+        names.push('ps_asset');
     }
+    activeLayer.name = names.join('.');
 }
