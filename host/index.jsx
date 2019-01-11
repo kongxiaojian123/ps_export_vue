@@ -70,6 +70,8 @@ function selectLayerById(id){
 }
 function parseVnode(vnode,parentVnode) {
     if(vnode.file){
+        vnode.name = 'app';
+        vnode.visible = true;
         vnode.file = vnode.file.replace(/\\/g,'\\\\');
         vnode.bounds.bottom = app.activeDocument.height.as("px");
         vnode.bounds.right = app.activeDocument.width.as("px");
@@ -92,11 +94,43 @@ function parseVnode(vnode,parentVnode) {
         for(var i = 0;i<vnode.layers.length;i++){
             parseVnode(vnode.layers[i],vnode);
         }
+        sortLayersOrder(vnode);
+    }
+}
+function sortLayersOrder(vnode) {
+    if(!vnode.style)vnode.style = {};
+    vnode.style.flexDirection = 'row';
+    vnode.style.flexWrap = 'nowrap';
+    if(vnode.layers.length>1){
+        var leftTopChild = vnode.layers[0];
+        var rightTopChild = vnode.layers[0];
+        var leftBottomChild = vnode.layers[0];
+        for(var i = 1;i<vnode.layers.length;i++){
+            var _child = vnode.layers[i];
+            if(_child.optimizeData.center[0]<=leftTopChild.optimizeData.center[0]&&_child.optimizeData.center[1]<=leftTopChild.optimizeData.center[1]){
+                leftTopChild = _child;
+            }
+            if(_child.optimizeData.center[0]>=rightTopChild.optimizeData.center[0]&&_child.optimizeData.center[1]<=rightTopChild.optimizeData.center[1]){
+                rightTopChild = _child;
+            }
+            if(_child.optimizeData.center[0]<=leftBottomChild.optimizeData.center[0]&&_child.optimizeData.center[1]>=leftBottomChild.optimizeData.center[1]){
+                leftBottomChild = _child;
+            }
+        }
+        if(leftTopChild===rightTopChild){
+            vnode.style.flexDirection = 'column';
+        }else if(leftTopChild!==leftBottomChild){
+            vnode.style.flexWrap = 'wrap';
+        }
+        vnode.layers.sort(function(a,b){
+            if(vnode.style.flexDirection === 'column') return a.center[1]-b.center[1];
+            else if(vnode.style.flexWrap === 'nowrap') return a.center[0]-b.center[0];
+        });
     }
 }
 function updateBounds(vnode,parentVnode) {
     selectLayerById(vnode.id);
-    rename();
+    rename(vnode);
     var activeLayer = app.activeDocument.activeLayer;
     vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
     vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
@@ -104,11 +138,29 @@ function updateBounds(vnode,parentVnode) {
     vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
     vnode.width = vnode.bounds.right - vnode.bounds.left;
     vnode.height = vnode.bounds.bottom - vnode.bounds.top;
+    vnode.center = [vnode.bounds.left+vnode.width/2,vnode.bounds.top+vnode.height/2];
     vnode.boundsWithParent = {
         top:vnode.bounds.top-parentVnode.bounds.top,
         left:vnode.bounds.left-parentVnode.bounds.left,
         bottom:parentVnode.bounds.bottom-vnode.bounds.bottom,
         right:parentVnode.bounds.right-vnode.bounds.right
+    };
+    vnode.optimizeData = {
+        bounds:{
+            top:Math.round(vnode.bounds.top/5)*5,
+            left:Math.round(vnode.bounds.left/5)*5,
+            bottom:Math.round(vnode.bounds.bottom/5)*5,
+            right:Math.round(vnode.bounds.right/5)*5
+        },
+        boundsWithParent:{
+            top:Math.round(vnode.boundsWithParent.top/5)*5,
+            left:Math.round(vnode.boundsWithParent.left/5)*5,
+            bottom:Math.round(vnode.boundsWithParent.bottom/5)*5,
+            right:Math.round(vnode.boundsWithParent.right/5)*5
+        },
+        width: Math.round(vnode.width/5)*5||vnode.width,
+        height: Math.round(vnode.height/5)*5||vnode.height,
+        center: [Math.round(vnode.center[0]/5)*5,Math.round(vnode.center[1]/5)*5],
     };
     if(
         vnode.type === 'shapeLayer'&&
@@ -120,17 +172,19 @@ function updateBounds(vnode,parentVnode) {
             (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)===vnode.strokeStyle.strokeStyleLineWidth)
         )
     ){
+        vnode.fill.color.alpha = ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1;
         if(!vnode.strokeStyle){
             vnode.strokeStyle = {
                 type:vnode.path.pathComponents[0].origin.type,
                 strokeEnabled:false,
                 fillEnabled:true,
-                strokeColor:{red:0,green:0,blue:0},
+                strokeColor:{red:0,green:0,blue:0,alpha:0},
                 fillColor:vnode.fill.color,
             }
         }else{
             vnode.strokeStyle.type = vnode.path.pathComponents[0].origin.type;
             vnode.strokeStyle.strokeColor = vnode.strokeStyle.strokeStyleContent.color;
+            vnode.strokeStyle.strokeColor.alpha = (activeLayer.opacity/100).toFixed (2)*1;
             delete vnode.strokeStyle.strokeStyleContent;
             vnode.strokeStyle.fillColor = vnode.fill.color;
         }
@@ -143,12 +197,18 @@ function updateBounds(vnode,parentVnode) {
                 vnode.strokeStyle.radii = '50%';
                 break;
             case 'roundedRect':
-                vnode.strokeStyle.radii = [
-                    vnode.path.pathComponents[0].origin.radii[3],
-                    vnode.path.pathComponents[0].origin.radii[0],
-                    vnode.path.pathComponents[0].origin.radii[1],
-                    vnode.path.pathComponents[0].origin.radii[2],
-                ];
+                var radii = vnode.path.pathComponents[0].origin.radii;
+                if(radii[0]===radii[1]&&radii[0]===radii[2]&&radii[0]===radii[3]){
+                    if(radii[0]) vnode.strokeStyle.radii = [radii[0]];
+                    else  vnode.strokeStyle.radii = 0;
+                }else{
+                    vnode.strokeStyle.radii = [
+                        radii[3],
+                        radii[0],
+                        radii[1],
+                        radii[2],
+                    ];
+                }
                 break;
         }
         delete vnode.path;
@@ -710,7 +770,7 @@ function saveJPG(name) {
     desc1351.putObject( idUsng, idSaveForWeb, desc1352 );
     executeAction( idExpr, desc1351, DialogModes.NO );
 }
-function rename() {
+function rename(vnode) {
     var activeLayer = app.activeDocument.activeLayer;
     var names = activeLayer.name.toLowerCase().replace(/\s/g,'').split('.');
     for (var i = 0;i<names.length;i++){
@@ -723,5 +783,6 @@ function rename() {
     if(!names.join('.').replace(regRule,'')){
         names.push('ps_asset');
     }
-    activeLayer.name = names.join('.');
+    vnode.name = activeLayer.name = names.join('.');
+
 }
