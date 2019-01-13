@@ -232,7 +232,7 @@ function fontStyle(vNode,tab=0) {
 function getAlignSelf(vNode, tab = 0, parent) {
     let style = '';
     if(parent.style.flexDirection==='row'){
-        style+=`${tabSpace(tab+1)}width: ${vNode.optimizeData.width}rpx;\n`;
+        if(vNode.layers) style+=`${tabSpace(tab+1)}width: ${vNode.optimizeData.width}rpx;\n`;
         const parentHeight = parent.optimizeData?parent.optimizeData.height:parent.height;
         const centerY = vNode.optimizeData.center[1]/parentHeight;
         vNode.style.alignSelf = 'center';
@@ -244,7 +244,7 @@ function getAlignSelf(vNode, tab = 0, parent) {
             style+=`${tabSpace(tab+1)}height: 100%;\n`;
         }
     }else {
-        style+=`${tabSpace(tab+1)}height: ${vNode.optimizeData.height}rpx;\n`;
+        if(vNode.layers) style+=`${tabSpace(tab+1)}height: ${vNode.optimizeData.height}rpx;\n`;
         const parentWidth = parent.optimizeData?parent.optimizeData.width:parent.width;
         const centerX = vNode.optimizeData.center[0]/parentWidth;
         vNode.style.alignSelf = 'center';
@@ -307,10 +307,11 @@ function createStyle(vNode,tab=0,parent) {
     }else{
         if(!vNode.visible) style+=`${tabSpace(tab+1)}display: none;\n`;
         if(vNode.type==='textLayer'){
-            style+=getAlignSelf(vNode,tab,parent);
             style+=`${tabSpace(tab+1)}height: ${Math.ceil(vNode.height)}rpx;\n`;
             if(vNode.style.kind==='textBox'&&Math.ceil(vNode.height)>vNode.style.size*1.5) style+=`${tabSpace(tab+1)}width: ${Math.ceil(vNode.width)}rpx;\n`;
             else{
+                if(styleData.textAlign ==='left') style+=`${tabSpace(tab+1)}align-self: flex-start;\n`;
+                else if(styleData.textAlign ==='right') style+=`${tabSpace(tab+1)}align-self: flex-end;\n`;
                 style+=`${tabSpace(tab+1)}white-space: nowrap;\n`;
             }
             style+=fontStyle(vNode,tab);
