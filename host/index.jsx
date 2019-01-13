@@ -1,7 +1,7 @@
 ﻿var _assetsPath = '';
 var vnodeObj = null;
 var regRule = new RegExp('\.(vue|jpg)','g');
-// exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
+// exportDocument('','C:\\Users\\klvin\\Desktop');
 function exportDocument(assetsPath){
     if(app.activeDocument.width.type==='%'){
         alert('Error: 文档所用单位不能为 "%"');
@@ -73,14 +73,14 @@ function parseVnode(vnode,parentVnode) {
         vnode.name = 'app';
         vnode.visible = true;
         vnode.file = vnode.file.replace(/\\/g,'\\\\');
-        vnode.bounds.bottom = app.activeDocument.height.as("px");
-        vnode.bounds.right = app.activeDocument.width.as("px");
+        vnode.height = vnode.bounds.bottom = app.activeDocument.height.as("px");
+        vnode.width = vnode.bounds.right = app.activeDocument.width.as("px");
     }else{
-        updateBounds(vnode,parentVnode);
+        updateStyle(vnode,parentVnode);
     }
     if(vnode.layers){
         var _child = vnode.layers[vnode.layers.length-1];
-        if(!_child.layers){
+        if((!_child.layers)&&(_child.type!=='textLayer')){
             updateBounds(_child,vnode);
             if(
                 _child.boundsWithParent.left ===0&&
@@ -89,10 +89,14 @@ function parseVnode(vnode,parentVnode) {
                 _child.boundsWithParent.bottom ===0
             ){
                 vnode.backgroundStyle = vnode.layers.pop();
+                updateStyle(_child,vnode);
             }
         }
         for(var i = 0;i<vnode.layers.length;i++){
             parseVnode(vnode.layers[i],vnode);
+        }
+        if(vnode.layers.length===1&&vnode.layers[0].type==='textLayer'){
+            vnode.text = vnode.layers.pop();
         }
         sortLayersOrder(vnode);
     }
@@ -128,40 +132,11 @@ function sortLayersOrder(vnode) {
         });
     }
 }
-function updateBounds(vnode,parentVnode) {
+function updateStyle(vnode,parentVnode) {
     selectLayerById(vnode.id);
-    rename(vnode);
     var activeLayer = app.activeDocument.activeLayer;
-    vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
-    vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
-    vnode.bounds.right = activeLayer.boundsNoEffects[2].as("px");
-    vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
-    vnode.width = vnode.bounds.right - vnode.bounds.left;
-    vnode.height = vnode.bounds.bottom - vnode.bounds.top;
-    vnode.center = [vnode.bounds.left+vnode.width/2,vnode.bounds.top+vnode.height/2];
-    vnode.boundsWithParent = {
-        top:vnode.bounds.top-parentVnode.bounds.top,
-        left:vnode.bounds.left-parentVnode.bounds.left,
-        bottom:parentVnode.bounds.bottom-vnode.bounds.bottom,
-        right:parentVnode.bounds.right-vnode.bounds.right
-    };
-    vnode.optimizeData = {
-        bounds:{
-            top:Math.round(vnode.bounds.top/5)*5,
-            left:Math.round(vnode.bounds.left/5)*5,
-            bottom:Math.round(vnode.bounds.bottom/5)*5,
-            right:Math.round(vnode.bounds.right/5)*5
-        },
-        boundsWithParent:{
-            top:Math.round(vnode.boundsWithParent.top/5)*5,
-            left:Math.round(vnode.boundsWithParent.left/5)*5,
-            bottom:Math.round(vnode.boundsWithParent.bottom/5)*5,
-            right:Math.round(vnode.boundsWithParent.right/5)*5
-        },
-        width: Math.round(vnode.width/5)*5||vnode.width,
-        height: Math.round(vnode.height/5)*5||vnode.height,
-        center: [Math.round(vnode.center[0]/5)*5,Math.round(vnode.center[1]/5)*5],
-    };
+    rename(vnode);
+    updateBounds(vnode,parentVnode);
     if(
         vnode.type === 'shapeLayer'&&
         vnode.path.pathComponents.length === 1&&
@@ -169,7 +144,7 @@ function updateBounds(vnode,parentVnode) {
             vnode.path.pathComponents[0].origin.type === 'rect'||
             vnode.path.pathComponents[0].origin.type === 'ellipse'||
             vnode.path.pathComponents[0].origin.type === 'roundedRect'||
-            (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)===vnode.strokeStyle.strokeStyleLineWidth)
+            (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)<=2)
         )
     ){
         vnode.fill.color.alpha = ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1;
@@ -229,13 +204,18 @@ function updateBounds(vnode,parentVnode) {
             textItem.textAlign = 'right';
         }
         vnode.style = {
-            color:textItem.color.rgb,
-            size:textItem.size.as('px'),
+            color:{
+                red:textItem.color.rgb.red,
+                green:textItem.color.rgb.green,
+                blue:textItem.color.rgb.blue,
+                alpha:((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1,
+            },
+            size:Math.round(textItem.size.as('px')),
             direction:textItem.direction===Direction.HORIZONTAL?"horizontal":"vertical",
             bold:textItem.bold,
             italic:textItem.italic,
             lineHeight:textItem.lineHeight,
-            kind:textItem.kind === TextType.POINTTEXT?'text':'textbox',
+            kind:textItem.kind === TextType.POINTTEXT?'text':'textBox',
             bounds:{
                 top:textItem.position[1].as('px'),
                 left:textItem.position[0].as('px'),
@@ -246,7 +226,7 @@ function updateBounds(vnode,parentVnode) {
             textDecoration:textItem.textDecoration,
             textDecoration:textItem.textDecoration,
         };
-    }else if(vnode.type === 'layer'){
+    }else if(vnode.type !== 'layerSection'){
         //不是普通形状
         if(vnode.smartObject)delete vnode.smartObject;
         copyLayer();
@@ -264,6 +244,40 @@ function updateBounds(vnode,parentVnode) {
         app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
     }
     if(vnode.strokeStyle)delete vnode.strokeStyle;
+}
+function updateBounds(vnode,parentVnode) {
+    selectLayerById(vnode.id);
+    var activeLayer = app.activeDocument.activeLayer;
+    vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
+    vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
+    vnode.bounds.right = activeLayer.boundsNoEffects[2].as("px");
+    vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
+    vnode.width = vnode.bounds.right - vnode.bounds.left;
+    vnode.height = vnode.bounds.bottom - vnode.bounds.top;
+    vnode.center = [vnode.bounds.left+vnode.width/2,vnode.bounds.top+vnode.height/2];
+    vnode.boundsWithParent = {
+        top:vnode.bounds.top-parentVnode.bounds.top,
+        left:vnode.bounds.left-parentVnode.bounds.left,
+        bottom:parentVnode.bounds.bottom-vnode.bounds.bottom,
+        right:parentVnode.bounds.right-vnode.bounds.right
+    };
+    vnode.optimizeData = {
+        bounds:{
+            top:Math.round(vnode.bounds.top/5)*5,
+            left:Math.round(vnode.bounds.left/5)*5,
+            bottom:Math.round(vnode.bounds.bottom/5)*5,
+            right:Math.round(vnode.bounds.right/5)*5
+        },
+        boundsWithParent:{
+            top:Math.round(vnode.boundsWithParent.top/5)*5,
+            left:Math.round(vnode.boundsWithParent.left/5)*5,
+            bottom:Math.round(vnode.boundsWithParent.bottom/5)*5,
+            right:Math.round(vnode.boundsWithParent.right/5)*5
+        },
+        width: Math.round(vnode.width/5)*5||vnode.width,
+        height: Math.round(vnode.height/5)*5||vnode.height,
+        center: [Math.round(vnode.center[0]/5)*5,Math.round(vnode.center[1]/5)*5],
+    };
 }
 function copyLayer() {
     //复制图层
@@ -775,13 +789,19 @@ function rename(vnode) {
     var names = activeLayer.name.toLowerCase().replace(/\s/g,'').split('.');
     for (var i = 0;i<names.length;i++){
         if(names[i].search(regRule)<0){
-            if(names[i].search(/[^\w-]/)>=0){
+            if(names[i].search(/[^\w-]/)>=0||names[i].search(/^\d/)>=0){
                 names.splice(i--,1);
             }
         }
     }
     if(!names.join('.').replace(regRule,'')){
-        names.push('ps_asset');
+        if(vnode.type === 'layerSection'){
+            names.push('ps_div');
+        }else if(vnode.type === 'textLayer'){
+            names.push('text');
+        }else{
+            names.push('ps_asset');
+        }
     }
     vnode.name = activeLayer.name = names.join('.');
 
