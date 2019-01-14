@@ -1,5 +1,4 @@
 ﻿var _assetsPath = '';
-var reg = new RegExp('[^\w\-]');
 var regRule = new RegExp('^(!%|vue|jpg|box)$');
 var regRule2 = new RegExp('\.(!%|vue|jpg|box)','g');
 var _documentWidth,_documentHeight;
@@ -670,7 +669,7 @@ function rename(layer) {
             if(id&&id[1] !== layer.id){
                 names[i] = 'ps-'+layer.id;
             }
-            if(names[i].search(reg)>=0||names[i].search(/^(\d+)$/)>=0||!names[i]){
+            if(names[i].search(/[^\w\-]/)>=0||names[i].search(/^(\d+)$/)>=0||!names[i]){
                 if(!num){
                     num++;
                     names[i] = 'ps-'+layer.id;
