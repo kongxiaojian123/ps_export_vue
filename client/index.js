@@ -51,7 +51,6 @@ exportButton.addEventListener("click", ()=>{
 function pullCode() {
     today = new Date();
     today.setHours(0,0,0,0);
-    console.log('test');
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
         if(isExist){
             const gitDate = localStorage.getItem('gitDate')||0;
@@ -90,10 +89,29 @@ function createVUE(vNode) {
     const html = `<template>
 ${createHTML(vNode)}
 </template>`;
-    const style = `\n<style scoped>
+    const script = `
+<script>
+    export default {
+        components:{},
+        props: [],
+        data(){
+            return{}
+        },
+        computed:{},
+        watch:{},
+        methods:{},
+        mounted(){},
+    };
+</script>`;
+    const style = `
+<style scoped>
 ${createStyle(vNode)}
 </style>`;
-    console.log(html+style,vNode);
+    fs.writeFile(path.resolve(save_path,'js',`${getClass(vNode)[0]}.vue`), html+script+style,  function(err) {
+        if (err) {
+            return console.error(err);
+        }
+    });
 }
 function tabSpace(num) {
     let space = '';
