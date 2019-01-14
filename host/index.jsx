@@ -1,5 +1,5 @@
 ﻿var _assetsPath = '';
-var reg = new RegExp('[^a-z0-9A-Z\-]');
+var reg = new RegExp('[^\w\-]');
 var regRule = new RegExp('^(!%|vue|jpg|box)$');
 var regRule2 = new RegExp('\.(!%|vue|jpg|box)','g');
 var _documentWidth,_documentHeight;
