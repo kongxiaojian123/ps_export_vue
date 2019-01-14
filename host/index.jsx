@@ -192,7 +192,7 @@ function updateStyle(vnode,parentVnode) {
     }else if(vnode.type === 'textLayer'){
         //文字
         var textItem = activeLayer.textItem;
-        vnode.text = textItem.contents;
+        vnode.text = textItem.contents.replace(/\s/g,' ');
         try{ textItem.bold = textItem.fauxBold; }catch(e){ textItem.bold = false; }
         try{ textItem.italic = textItem.fauxItalic; }catch(e){ textItem.italic = false; }
         try{ textItem.lineHeight = textItem.leading.as('px') }catch(e){ textItem.lineHeight = 'auto'; }
