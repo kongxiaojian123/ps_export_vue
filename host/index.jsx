@@ -98,38 +98,26 @@ function parseVnode(vnode,parentVnode) {
         if(vnode.layers.length===1&&vnode.layers[0].type==='textLayer'){
             vnode.text = vnode.layers.pop();
         }
-        sortLayersOrder(vnode);
+        checkDirection(vnode);
     }
 }
-function sortLayersOrder(vnode) {
+function checkDirection(vnode) {
     if(!vnode.style)vnode.style = {};
     vnode.style.flexDirection = 'row';
     vnode.style.flexWrap = 'nowrap';
     if(vnode.layers.length>1){
-        var leftTopChild = vnode.layers[0];
-        var rightTopChild = vnode.layers[0];
-        var leftBottomChild = vnode.layers[0];
-        for(var i = 1;i<vnode.layers.length;i++){
-            var _child = vnode.layers[i];
-            if(_child.optimizeData.center[0]<=leftTopChild.optimizeData.center[0]&&_child.optimizeData.center[1]<=leftTopChild.optimizeData.center[1]){
-                leftTopChild = _child;
-            }
-            if(_child.optimizeData.center[0]>=rightTopChild.optimizeData.center[0]&&_child.optimizeData.center[1]<=rightTopChild.optimizeData.center[1]){
-                rightTopChild = _child;
-            }
-            if(_child.optimizeData.center[0]<=leftBottomChild.optimizeData.center[0]&&_child.optimizeData.center[1]>=leftBottomChild.optimizeData.center[1]){
-                leftBottomChild = _child;
-            }
-        }
-        if(leftTopChild===rightTopChild){
+        var first = vnode.layers[0];
+        var second = vnode.layers[1];
+        if(first.boundsWithParent.bottom>second.boundsWithParent.bottom+second.height){
             vnode.style.flexDirection = 'column';
-        }else if(leftTopChild!==leftBottomChild){
-            vnode.style.flexWrap = 'wrap';
+        }else if(vnode.layers.length>2){
+            var third = vnode.layers[2];
+            if(first.boundsWithParent.right<third.boundsWithParent.right+second.width){
+                vnode.style.flexWrap = 'wrap';
+            }
         }
-        vnode.layers.sort(function(a,b){
-            if(vnode.style.flexDirection === 'column') return a.center[1]-b.center[1];
-            else if(vnode.style.flexWrap === 'nowrap') return a.center[0]-b.center[0];
-        });
+    }else{
+        vnode.style.flexDirection = 'none';
     }
 }
 function updateStyle(vnode,parentVnode) {

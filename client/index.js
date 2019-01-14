@@ -41,6 +41,7 @@ exportButton.addEventListener("click", ()=>{
                         }
                         pullCode();
                         vNodeCache = JSON.parse(result);
+                        console.log(vNodeCache);
                         createVUE(vNodeCache);
                     });
                 });
@@ -254,25 +255,27 @@ function getAlignSelf(vNode, tab = 0, parent) {
         const parentHeight = parent.optimizeData?parent.optimizeData.height:parent.height;
         const centerY = vNode.optimizeData.center[1]/parentHeight;
         vNode.style.alignSelf = 'center';
-        if(centerY<.4){
+        if(centerY<.35){
             vNode.style.alignSelf = 'flex-start';
-        }else if(centerY>.6){
+        }else if(centerY>.65){
             vNode.style.alignSelf = 'flex-end';
         }else if(vNode.layers){
             style+=`${tabSpace(tab+1)}height: 100%;\n`;
         }
-    }else {
+    }else if(parent.style.flexDirection==='column') {
         if(vNode.layers) style+=`${tabSpace(tab+1)}height: ${vNode.optimizeData.height}rpx;\n`;
         const parentWidth = parent.optimizeData?parent.optimizeData.width:parent.width;
         const centerX = vNode.optimizeData.center[0]/parentWidth;
         vNode.style.alignSelf = 'center';
-        if(centerX<.4){
+        if(centerX<.35){
             vNode.style.alignSelf = 'flex-start';
-        }else if(centerX>.6){
+        }else if(centerX>.65){
             vNode.style.alignSelf = 'flex-end';
         }else if(vNode.layers){
             style+=`${tabSpace(tab+1)}width: 100%;\n`;
         }
+    }else{
+        vNode.style.alignSelf = 'center';
     }
     if(vNode.style.alignSelf!=='center'){
         style+=`${tabSpace(tab+1)}align-self: ${vNode.style.alignSelf};\n`;
