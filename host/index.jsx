@@ -427,8 +427,7 @@ function updateShadow(vnode) {
 }
 function setJustifyContent(vnode) {
     var _vnode = vnodeObj.vnode[vnode.vnodeID];
-    if(vnode.children&&_vnode.style.margin){
-        if(vnode.name === 'address') debugger;
+    if(vnode.children&&_vnode.style.margin&&!_vnode.style.alignSelf){
         if(_vnode.style.flexDirection){
             if(_vnode.style.margin[0]===_vnode.style.margin[2]){
                 //col
