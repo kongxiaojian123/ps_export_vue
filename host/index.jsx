@@ -162,7 +162,6 @@ function mapVnode(currentVnode, parentVnode) {
             }
         }
     }
-    setJustifyContent(vnodeStructure);
     return vnodeStructure;
 }
 function parseVnode(currentVnode) {
@@ -231,6 +230,7 @@ function parseVnode(currentVnode) {
             ){
                 _vnode.style.margin = null;
             }
+            setJustifyContent(currentVnode.children[i]);
         }
     }
 
@@ -414,30 +414,42 @@ function updateShadow(vnode) {
         dropShadow.blur = dropShadow.blur ||0;
         if((!dropShadow.distance)&&(!dropShadow.blur)) return;
         if(dropShadow.useGlobalAngle!==false) dropShadow.useGlobalAngle = true;
-        const light = (dropShadow.useGlobalAngle?globalLight:dropShadow.localLightingAngle.value)/180*Math.PI;
-        const spread = Math.round(dropShadow.blur*dropShadow.chokeMatte/100);
-        const blur = Math.round(dropShadow.blur*(100-dropShadow.chokeMatte)/100);
-        const h_shadow = -1*Math.round(Math.cos(light)*dropShadow.distance);
-        const v_shadow = Math.round(Math.sin(light)*dropShadow.distance);
+        var light = (dropShadow.useGlobalAngle?globalLight:dropShadow.localLightingAngle.value)/180*Math.PI;
+        var spread = Math.round(dropShadow.blur*dropShadow.chokeMatte/100);
+        var blur = Math.round(dropShadow.blur*(100-dropShadow.chokeMatte)/100);
+        var h_shadow = -1*Math.round(Math.cos(light)*dropShadow.distance);
+        var v_shadow = Math.round(Math.sin(light)*dropShadow.distance);
 
         vnodeObj.vnode[vnode.id].style.boxShadow = [h_shadow,v_shadow,blur,spread,color];
     }
 }
 function setJustifyContent(vnode) {
-    return;
-    //todo 没想好怎么做
-    const _vnode = vnodeObj.vnode[vnode.vnodeID];
-    if(vnode.children&&node.parentID&&!_vnode.style.flexWrap){
-        const _parent = vnodeObj.vnode[vnode.parentID];
-        if(vnode.children.length===2){
-            if(_vnode.style.flexDirection){
-                alert(_vnode.name+' col');
-                alert(_vnode.bounds.relative);
-                alert(Math.abs(_vnode.bounds.relative[1]-_vnode.bounds.relative[3]));
-            }else{
-                alert(_vnode.name+' row');
-                alert(_vnode.bounds.relative);
-                alert(Math.abs(_vnode.bounds.relative[0]-_vnode.bounds.relative[2]));
+    var _vnode = vnodeObj.vnode[vnode.vnodeID];
+    if(vnode.children&&_vnode.style.margin){
+        if(vnode.name === 'address') debugger;
+        if(_vnode.style.flexDirection){
+            if(_vnode.style.margin[0]===_vnode.style.margin[2]){
+                //col
+                _vnode.style.alignSelf='normal';
+                _vnode.style.justifyContent='space-between';
+                for(var i= 0;i<vnode.children.length;i++){
+                    var _child = vnodeObj.vnode[vnode.children[i].vnodeID];
+                    if(_child.style.margin&&_child.style.margin[0]>_vnode.bounds.height*.25){
+                        _child.style.margin[0] = 0;
+                    }
+                }
+            }
+        }else{
+            if(_vnode.style.margin[1]===_vnode.style.margin[3]){
+                //row
+                _vnode.style.alignSelf='normal';
+                _vnode.style.justifyContent='space-between';
+                for(var i= 0;i<vnode.children.length;i++){
+                    var _child = vnodeObj.vnode[vnode.children[i].vnodeID];
+                    if(_child.style.margin&&_child.style.margin[3]>_vnode.bounds.width*.25){
+                        _child.style.margin[3] = 0;
+                    }
+                }
             }
         }
     }
