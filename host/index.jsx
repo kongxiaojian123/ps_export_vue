@@ -1,5 +1,6 @@
 ﻿var _assetsPath = '';
 var vnodeObj = null;
+var globalLight = null;
 var regRule = new RegExp('\.(vue|jpg)','g');
 // exportDocument('','C:\\Users\\klvin\\Desktop');
 function exportDocument(assetsPath){
@@ -8,8 +9,15 @@ function exportDocument(assetsPath){
         return;
     }
     _assetsPath = assetsPath;
-    vnodeObj = getInfo();
-    parseVnode(vnodeObj);
+    vnodeObj = {
+        structure:null,
+        vnode:{},
+    };
+    var info = getInfo();
+    info.width = info.bounds.right;
+    info.height = info.bounds.bottom;
+    vnodeObj.structure = mapVnode(info,null);
+    parseVnode(vnodeObj.structure);
     return toJSON(vnodeObj);
 }
 function getInfo() {
@@ -20,44 +28,48 @@ function getInfo() {
     docRef.putProperty(charIDToTypeID('Prpr'), JSONid);
     docRef.putEnumerated(stringIDToTypeID("document"), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
     desc.putReference(charIDToTypeID('null'), docRef);
-    return eval('info = ' + executeAction(charIDToTypeID( "getd" ), desc, DialogModes.NO).getString(JSONid));
+    eval('info = ' + executeAction(charIDToTypeID( "getd" ), desc, DialogModes.NO).getString(JSONid));
+    globalLight = info.globalLight.angle;
     return info;
 }
 function toJSON(object) {
-    var json = '{';
-    for(var attr in object){
-        json +='"'+attr+'":';
-        var item = object[attr];
-        switch (typeof item) {
-            case 'string':
-                json +='"'+item+'",';
-                break;
-            case 'object':
-                if(item instanceof Array){
-                    json += '[';
-                    for(var i = 0;i<item.length;i++){
-                        if(typeof item[i] === 'object'){
-                            if(item[i]===null) json += 'null,';
-                            else json += toJSON(item[i]) + ',';
-                        }else{
-                            if(typeof item[i] === 'string') json += '"' + item[i] + '",';
-                            else json += item[i] + ',';
-                        }
-                    }
-                    json = json.replace(/,$/,'');
-                    json += '],';
-                }else if(item!=null){
-                    json += toJSON(item) + ',';
-                }else{
-                    json += 'null,';
-                }
-                break;
-            default:
-                json += item + ',';
+    var json;
+    if(object instanceof Array){
+        json = '[';
+        for(var i = 0;i<object.length;i++){
+            if(typeof object[i] === 'object'){
+                if(object[i]===null) json += 'null,';
+                else json += toJSON(object[i]) + ',';
+            }else{
+                if(typeof object[i] === 'string') json += '"' + object[i] + '",';
+                else json += object[i] + ',';
+            }
         }
+        json = json.replace(/,$/,'');
+        json += ']';
+    }else{
+        json = '{';
+        for(var attr in object){
+            json +='"'+attr+'":';
+            var item = object[attr];
+            switch (typeof item) {
+                case 'string':
+                    json +='"'+item+'",';
+                    break;
+                case 'object':
+                    if(item===null){
+                        json += 'null,';
+                    }else{
+                        json += toJSON(item) + ',';
+                    }
+                    break;
+                default:
+                    json += item + ',';
+            }
+        }
+        json = json.replace(/,$/,'');
+        json +='}';
     }
-    json = json.replace(/,$/,'');
-    json +='}';
     return json;
 }
 function selectLayerById(id){
@@ -68,7 +80,356 @@ function selectLayerById(id){
     desc.putBoolean(stringIDToTypeID( "makeVisible" ),false);
     executeAction(stringIDToTypeID("select"), desc,DialogModes.NO);
 }
-function parseVnode(vnode,parentVnode) {
+function mapVnode(currentVnode, parentVnode) {
+    if(parentVnode){
+        updateBounds(currentVnode,parentVnode);
+        rename(currentVnode);
+    }
+    var vnodeStructure = {
+        parentID : parentVnode?parentVnode.id:null,
+        vnodeID : currentVnode.id,
+    };
+    vnodeObj.vnode[currentVnode.id] = {
+        name:currentVnode.name||'container',
+        text:null,
+        background:null,
+        type:currentVnode.type||'root',
+        bounds:{
+            absolute:[currentVnode.bounds.left,currentVnode.bounds.top,currentVnode.bounds.right,currentVnode.bounds.bottom],
+            relative:[0,0,0,0],
+            width:currentVnode.bounds.right,
+            height:currentVnode.bounds.bottom,
+            center:[currentVnode.bounds.right/2,currentVnode.bounds.bottom/2],
+            offset:[0,0],
+        },
+        style:{
+            display:currentVnode.visible===false?'none':null,
+            flex:null,
+            flexDirection:null,
+            alignSelf:null,
+            alignItems:null,
+            justifyContent:null,
+            width:null,
+            height:null,
+            padding:null,
+            margin:null,
+            borderWidth:null,
+            borderColor:null,
+            borderRadius:null,
+            backgroundColor:null,
+            backgroundImage:null,
+            fontSize:null,
+            lineHeight:null,
+            textAlign:null,
+            textWidth:null,
+            textHeight:null,
+            fontWeight:null,
+            fontStyle:null,
+            textDecoration:null,
+            color:null,
+            boxShadow:null,
+        }
+    };
+    if(parentVnode){
+        vnodeObj.vnode[currentVnode.id].bounds.relative = [currentVnode.boundsWithParent.left,currentVnode.boundsWithParent.top,currentVnode.boundsWithParent.right,currentVnode.boundsWithParent.bottom];
+        vnodeObj.vnode[currentVnode.id].bounds.width = currentVnode.width;
+        vnodeObj.vnode[currentVnode.id].bounds.height = currentVnode.height;
+        vnodeObj.vnode[currentVnode.id].bounds.center = [currentVnode.centerX,currentVnode.centerY];
+        vnodeObj.vnode[currentVnode.id].bounds.offset = [currentVnode.offsetX,currentVnode.offsetY];
+    }
+    updateStyle(currentVnode, parentVnode);
+    if(currentVnode.layers){
+        vnodeStructure.children = [];
+        for(var i = 0;i<currentVnode.layers.length;i++){
+            vnodeStructure.children.push(mapVnode(currentVnode.layers[i],currentVnode));
+        }
+        var lastChild = currentVnode.layers[currentVnode.layers.length-1];
+        if(
+            lastChild.boundsWithParent.left === 0&&
+            lastChild.boundsWithParent.top === 0&&
+            lastChild.boundsWithParent.right === 0&&
+            lastChild.boundsWithParent.bottom === 0&&
+            lastChild.type !== 'layerSection'
+        ){
+            vnodeStructure.children.pop();
+            vnodeObj.vnode[currentVnode.id].background = lastChild.id;
+        }
+        if(vnodeStructure.children.length===1){
+            if(currentVnode.layers[0].type === 'textLayer'){
+                vnodeStructure.children.pop();
+                vnodeObj.vnode[currentVnode.id].text = currentVnode.layers[0].id;
+            }
+        }
+    }
+    return vnodeStructure;
+}
+function parseVnode(currentVnode) {
+    //解析padding margin
+    if(currentVnode.children&&currentVnode.children.length){
+        var vnode = vnodeObj.vnode[currentVnode.vnodeID];
+        var padding = [vnode.bounds.width,vnode.bounds.height,vnode.bounds.width,vnode.bounds.height];
+        for(var i = 0;i<currentVnode.children.length;i++){
+            var _vnode = vnodeObj.vnode[currentVnode.children[i].vnodeID];
+            if(_vnode.bounds.relative[1]<padding[0]) padding[0] = _vnode.bounds.relative[1];
+            if(_vnode.bounds.relative[2]<padding[1]) padding[1] = _vnode.bounds.relative[2];
+            if(_vnode.bounds.relative[3]<padding[2]) padding[2] = _vnode.bounds.relative[3];
+            if(_vnode.bounds.relative[0]<padding[3]) padding[3] = _vnode.bounds.relative[0];
+            parseVnode(currentVnode.children[i]);
+        }
+        if(vnode.style.flexDirection==='column'){
+            padding[0] = 0;
+            padding[1] = padding[3] = Math.min(padding[1],padding[3]);
+        }else{
+            padding[3] = 0;
+            padding[0] = padding[2] = Math.min(padding[0],padding[2]);
+        }
+        if(padding[0]||padding[1]||padding[2]||padding[3]){
+            vnode.style.padding = padding;
+        }
+        for(var i = 0;i<currentVnode.children.length;i++){
+            var _vnode = vnodeObj.vnode[currentVnode.children[i].vnodeID];
+            if(vnode.style.flexDirection==='column'){
+                var paddingLeft = vnode.style.padding?vnode.style.padding[3]:0;
+                var paddingRight = vnode.style.padding?vnode.style.padding[1]:0;
+                var offsetLeft = _vnode.bounds.relative[0] - paddingLeft;
+                var offsetRight = _vnode.bounds.relative[2] - paddingRight;
+                if(offsetLeft-offsetRight>vnode.bounds.width*.1){
+                    _vnode.style.alignSelf='flex-end';
+                    _vnode.style.margin = [_vnode.bounds.offset[1],offsetRight,0,0];
+                }else if(offsetLeft-offsetRight<-vnode.bounds.width*.1){
+                    _vnode.style.alignSelf='flex-start';
+                    _vnode.style.margin = [_vnode.bounds.offset[1],0,0,offsetLeft];
+                }else{
+                    var min = Math.min(offsetLeft,offsetRight);
+                    _vnode.style.margin = [_vnode.bounds.offset[1],min,0,min];
+                }
+            }else{
+                var paddingTop = vnode.style.padding?vnode.style.padding[0]:0;
+                var paddingBottom = vnode.style.padding?vnode.style.padding[2]:0;
+                var offsetTop = _vnode.bounds.relative[1] - paddingTop;
+                var offsetBottom = _vnode.bounds.relative[3] - paddingBottom;
+                if(offsetTop-offsetBottom>vnode.bounds.height*.25){
+                    _vnode.style.alignSelf='flex-end';
+                    _vnode.style.margin = [0,0,offsetBottom,_vnode.bounds.offset[0]];
+                }else if(offsetTop-offsetBottom<-vnode.bounds.height*.25){
+                    _vnode.style.alignSelf='flex-start';
+                    _vnode.style.margin = [offsetTop,0,0,_vnode.bounds.offset[0]];
+                }else{
+                    var min = Math.min(offsetTop,offsetBottom);
+                    _vnode.style.margin = [min,0,min,_vnode.bounds.offset[0]];
+                }
+            }
+            if(
+                _vnode.style.margin&&!(
+                    _vnode.style.margin[0]||
+                    _vnode.style.margin[1]||
+                    _vnode.style.margin[2]||
+                    _vnode.style.margin[3]
+                )
+            ){
+                _vnode.style.margin = null;
+            }
+        }
+    }
+
+}
+function updateBounds(vnode,parentVnode) {
+    selectLayerById(vnode.id);
+    var activeLayer = app.activeDocument.activeLayer;
+    vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
+    vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
+    vnode.bounds.right = activeLayer.boundsNoEffects[2].as("px");
+    vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
+    vnode.width = vnode.bounds.right-vnode.bounds.left;
+    vnode.height = vnode.bounds.bottom-vnode.bounds.top;
+    vnode.boundsWithParent = {
+        left:0,
+        top:0,
+        right:0,
+        bottom:0
+    };
+    if(parentVnode){
+        vnode.boundsWithParent.left = vnode.bounds.left - parentVnode.bounds.left;
+        vnode.boundsWithParent.top = vnode.bounds.top - parentVnode.bounds.top;
+        vnode.boundsWithParent.right = parentVnode.bounds.right - vnode.bounds.right;
+        vnode.boundsWithParent.bottom = parentVnode.bounds.bottom - vnode.bounds.bottom;
+    }
+    vnode.centerX = vnode.boundsWithParent.left+vnode.width/2;
+    vnode.centerY = vnode.boundsWithParent.top+vnode.height/2;
+    for(var i = 0;i<parentVnode.layers.length;i++){
+        if(vnode===parentVnode.layers[i]){
+            if(i>0){
+                vnode.offsetX=vnode.bounds.left-parentVnode.layers[i-1].bounds.right;
+                vnode.offsetY=vnode.bounds.top-parentVnode.layers[i-1].bounds.bottom;
+            }else{
+                vnode.offsetX=vnode.boundsWithParent.left;
+                vnode.offsetY=vnode.boundsWithParent.top;
+            }
+        }
+    }
+}
+function updateStyle(vnode) {
+    updateShape(vnode);
+    updateText(vnode);
+    setDirection(vnode);
+}
+function updateShape(vnode) {
+    var activeLayer = app.activeDocument.activeLayer;
+    var _vnode = vnodeObj.vnode[vnode.id];
+    var _style = _vnode.style;
+    if(
+        vnode.type === 'shapeLayer'&&
+        vnode.path.pathComponents.length === 1&&
+        (
+            vnode.path.pathComponents[0].origin.type === 'rect'||
+            vnode.path.pathComponents[0].origin.type === 'ellipse'||
+            vnode.path.pathComponents[0].origin.type === 'roundedRect'||
+            (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)<=2)
+        )
+    ){
+        _style.width = Math.round(activeLayer.boundsNoEffects[2].as("px")-activeLayer.boundsNoEffects[0].as("px"));
+        _style.height = Math.round(activeLayer.boundsNoEffects[3].as("px")-activeLayer.boundsNoEffects[1].as("px"));
+        if(!(vnode.strokeStyle&&!vnode.strokeStyle.fillEnabled)){
+            _style.backgroundColor = [
+                Math.round(vnode.fill.color.red),
+                Math.round(vnode.fill.color.green),
+                Math.round(vnode.fill.color.blue),
+                ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
+            ];
+        }
+        if(vnode.strokeStyle&&vnode.strokeStyle.strokeEnabled){
+            _style.borderWidth = vnode.strokeStyle.strokeStyleLineWidth;
+            _style.borderColor = [
+                Math.round(vnode.strokeStyle.strokeStyleContent.color.red),
+                Math.round(vnode.strokeStyle.strokeStyleContent.color.green),
+                Math.round(vnode.strokeStyle.strokeStyleContent.color.blue),
+                (activeLayer.opacity/100).toFixed (2)*1
+            ];
+        }
+        switch (vnode.path.pathComponents[0].origin.type) {
+            case 'rect': case 'line':
+                _style.borderRadius = [0,0,0,0];
+                break;
+            case 'ellipse':
+                _style.borderRadius = ['50%','50%','50%','50%'];
+                break;
+            case 'roundedRect':
+                _style.borderRadius = [
+                    vnode.path.pathComponents[0].origin.radii[3],
+                    vnode.path.pathComponents[0].origin.radii[0],
+                    vnode.path.pathComponents[0].origin.radii[1],
+                    vnode.path.pathComponents[0].origin.radii[2],
+                ];
+                break;
+        }
+        updateEffects(vnode);
+        return true;
+    }
+    return false;
+}
+function updateEffects(vnode) {
+    if(vnode.layerEffects){
+        updateShadow(vnode);
+    }
+}
+function updateShadow(vnode) {
+    if(vnode.layerEffects.dropShadow){
+        //shadow
+        var dropShadow = vnode.layerEffects.dropShadow;
+        if(!vnode.layerEffects.dropShadow.length){
+            dropShadow = [vnode.layerEffects.dropShadow];
+        }
+        for(var i = 0;i<dropShadow.length;i++){
+            if(!dropShadow[i].enabled){
+                dropShadow.splice(i--,1);
+            }
+        }
+        if(!dropShadow.length) return;
+        dropShadow = dropShadow[0];
+        if(!dropShadow.opacity.value) return;
+        var color = [0,0,0,(dropShadow.opacity.value/100).toFixed(2)];
+        if(dropShadow.color){
+            color[0] = Math.round(dropShadow.color.red||0);
+            color[1] = Math.round(dropShadow.color.green||0);
+            color[2] = Math.round(dropShadow.color.blue||0);
+        }
+        if(!dropShadow.mode){
+            color[0] = Math.round(color[0]*.15);
+            color[1] = Math.round(color[0]*.15);
+            color[2] = Math.round(color[0]*.15);
+        }
+        if(!dropShadow.distance&&dropShadow.distance!==0)dropShadow.distance = 3;
+        dropShadow.blur = dropShadow.blur ||0;
+        if((!dropShadow.distance)&&(!dropShadow.blur)) return;
+        if(dropShadow.useGlobalAngle!==false) dropShadow.useGlobalAngle = true;
+        const light = (dropShadow.useGlobalAngle?globalLight:dropShadow.localLightingAngle.value)/180*Math.PI;
+        const spread = Math.round(dropShadow.blur*dropShadow.chokeMatte/100);
+        const blur = Math.round(dropShadow.blur*(100-dropShadow.chokeMatte)/100);
+        const h_shadow = -1*Math.round(Math.cos(light)*dropShadow.distance);
+        const v_shadow = Math.round(Math.sin(light)*dropShadow.distance);
+
+        vnodeObj.vnode[vnode.id].style.boxShadow = [h_shadow,v_shadow,blur,spread,color];
+    }
+}
+function updateText(vnode) {
+    var activeLayer = app.activeDocument.activeLayer;
+    var _vnode = vnodeObj.vnode[vnode.id];
+    var _style = _vnode.style;
+    if(vnode.type === 'textLayer'){
+        var textItem = activeLayer.textItem;
+        try{_style.fontWeight=textItem.fauxBold?'bold':null}catch(e){}
+        try{_style.fontStyle=textItem.fauxItalic?'italic':null}catch(e){}
+        try{_style.lineHeight=textItem.leading.as('px')||null}catch(e){}
+        try{_style.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?null:'underline' }catch(e){}
+        if(textItem.justification === Justification.CENTER){
+            _style.textAlign = 'center';
+        }else if(textItem.justification === Justification.RIGHT){
+            _style.textAlign = 'right';
+        }
+        _style.color = [
+            Math.round(textItem.color.rgb.red),
+            Math.round(textItem.color.rgb.green),
+            Math.round(textItem.color.rgb.blue),
+            ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
+        ];
+        _style.fontSize = Math.round(textItem.size.as('px'));
+        _style.textWidth = Math.round(textItem.width.as('px'));
+        _style.textHeight = Math.round(textItem.height.as('px'));
+        _vnode.text = {
+            text:textItem.contents.replace(/\s/g,' '),
+            type:textItem.kind === TextType.POINTTEXT?'text':'textBox'
+        };
+        _vnode.textType = textItem.kind === TextType.POINTTEXT?'text':'textBox';
+        return true;
+    }
+    return false;
+}
+function setDirection(vnode) {
+    if(vnode.layers&&vnode.layers.length>1){
+        var direction = [0,0];
+        for(var i = 1;i<vnode.layers.length;i++){
+            var first = vnode.layers[i-1];
+            var second = vnode.layers[i];
+            if(first.bounds.bottom < second.bounds.top){
+                direction[1]++;
+            }
+            if(first.bounds.right < second.bounds.left){
+                direction[0]++;
+            }
+            if(first.bounds.bottom<second.bounds.top&&second.bounds.right<first.bounds.left){
+                vnodeObj.vnode[vnode.id].style.flexWrap='wrap';
+            }
+        }
+        if(direction[0]<direction[1]&&vnodeObj.vnode[vnode.id].style.flexWrap!=='wrap'){
+            vnodeObj.vnode[vnode.id].style.flexDirection = 'column';
+        }
+    }
+}
+
+
+
+
+function parseVnode2(vnode,parentVnode) {
     if(vnode.file){
         vnode.name = 'app';
         vnode.visible = true;
@@ -101,7 +462,7 @@ function parseVnode(vnode,parentVnode) {
         checkDirection(vnode);
     }
 }
-function checkDirection(vnode) {
+function checkDirection2(vnode) {
     if(!vnode.style)vnode.style = {};
     vnode.style.flexDirection = 'row';
     vnode.style.flexWrap = 'nowrap';
@@ -120,10 +481,8 @@ function checkDirection(vnode) {
         vnode.style.flexDirection = 'none';
     }
 }
-function updateStyle(vnode,parentVnode) {
-    selectLayerById(vnode.id);
+function updateStyle2(vnode,parentVnode) {
     var activeLayer = app.activeDocument.activeLayer;
-    rename(vnode);
     updateBounds(vnode,parentVnode);
     if(
         vnode.type === 'shapeLayer'&&
@@ -232,40 +591,6 @@ function updateStyle(vnode,parentVnode) {
         app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
     }
     if(vnode.strokeStyle)delete vnode.strokeStyle;
-}
-function updateBounds(vnode,parentVnode) {
-    selectLayerById(vnode.id);
-    var activeLayer = app.activeDocument.activeLayer;
-    vnode.bounds.left = activeLayer.boundsNoEffects[0].as("px");
-    vnode.bounds.top = activeLayer.boundsNoEffects[1].as("px");
-    vnode.bounds.right = activeLayer.boundsNoEffects[2].as("px");
-    vnode.bounds.bottom = activeLayer.boundsNoEffects[3].as("px");
-    vnode.width = vnode.bounds.right - vnode.bounds.left;
-    vnode.height = vnode.bounds.bottom - vnode.bounds.top;
-    vnode.center = [vnode.bounds.left+vnode.width/2,vnode.bounds.top+vnode.height/2];
-    vnode.boundsWithParent = {
-        top:vnode.bounds.top-parentVnode.bounds.top,
-        left:vnode.bounds.left-parentVnode.bounds.left,
-        bottom:parentVnode.bounds.bottom-vnode.bounds.bottom,
-        right:parentVnode.bounds.right-vnode.bounds.right
-    };
-    vnode.optimizeData = {
-        bounds:{
-            top:Math.round(vnode.bounds.top/5)*5,
-            left:Math.round(vnode.bounds.left/5)*5,
-            bottom:Math.round(vnode.bounds.bottom/5)*5,
-            right:Math.round(vnode.bounds.right/5)*5
-        },
-        boundsWithParent:{
-            top:Math.round(vnode.boundsWithParent.top/5)*5,
-            left:Math.round(vnode.boundsWithParent.left/5)*5,
-            bottom:Math.round(vnode.boundsWithParent.bottom/5)*5,
-            right:Math.round(vnode.boundsWithParent.right/5)*5
-        },
-        width: Math.round(vnode.width/5)*5||vnode.width,
-        height: Math.round(vnode.height/5)*5||vnode.height,
-        center: [Math.round(vnode.center[0]/5)*5,Math.round(vnode.center[1]/5)*5],
-    };
 }
 function copyLayer() {
     //复制图层
