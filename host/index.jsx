@@ -162,6 +162,7 @@ function mapVnode(currentVnode, parentVnode) {
             }
         }
     }
+    setJustifyContent(vnodeStructure);
     return vnodeStructure;
 }
 function parseVnode(currentVnode) {
@@ -420,6 +421,25 @@ function updateShadow(vnode) {
         const v_shadow = Math.round(Math.sin(light)*dropShadow.distance);
 
         vnodeObj.vnode[vnode.id].style.boxShadow = [h_shadow,v_shadow,blur,spread,color];
+    }
+}
+function setJustifyContent(vnode) {
+    return;
+    //todo 没想好怎么做
+    const _vnode = vnodeObj.vnode[vnode.vnodeID];
+    if(vnode.children&&node.parentID&&!_vnode.style.flexWrap){
+        const _parent = vnodeObj.vnode[vnode.parentID];
+        if(vnode.children.length===2){
+            if(_vnode.style.flexDirection){
+                alert(_vnode.name+' col');
+                alert(_vnode.bounds.relative);
+                alert(Math.abs(_vnode.bounds.relative[1]-_vnode.bounds.relative[3]));
+            }else{
+                alert(_vnode.name+' row');
+                alert(_vnode.bounds.relative);
+                alert(Math.abs(_vnode.bounds.relative[0]-_vnode.bounds.relative[2]));
+            }
+        }
     }
 }
 function setDirection(vnode) {
