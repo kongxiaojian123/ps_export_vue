@@ -121,6 +121,7 @@ function mapVnode(currentVnode, parentVnode) {
             fontSize:null,
             lineHeight:null,
             textAlign:null,
+            whiteSpace:null,
             textWidth:null,
             textHeight:null,
             fontWeight:null,
@@ -269,8 +270,24 @@ function updateBounds(vnode,parentVnode) {
     }
 }
 function updateStyle(vnode) {
-    updateShape(vnode);
-    updateText(vnode);
+    var _vnode = vnodeObj.vnode[vnode.id];
+    var shape = updateShape(vnode);
+    var text = updateText(vnode);
+    if(!shape&&!text){
+        if((!vnode.file)&&vnode.type !== 'layerSection'){
+            copyLayer();
+            var name = vnode.name.replace(regRule,'');
+            _vnode.style.backgroundImage = name+'.'+vnode.id;
+            if(vnode.name.indexOf('.jpg')>=0){
+                _vnode.style.backgroundImage+='.jpg';
+                saveJPG(_vnode.style.backgroundImage);
+            }else{
+                _vnode.style.backgroundImage+='.png';
+                savePNG(_vnode.style.backgroundImage);
+            }
+            app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
+        }
+    }
     setDirection(vnode);
 }
 function updateShape(vnode) {
@@ -327,6 +344,40 @@ function updateShape(vnode) {
     }
     return false;
 }
+function updateText(vnode) {
+    var activeLayer = app.activeDocument.activeLayer;
+    var _vnode = vnodeObj.vnode[vnode.id];
+    var _style = _vnode.style;
+    if(vnode.type === 'textLayer'){
+        var textItem = activeLayer.textItem;
+        try{_style.fontWeight=textItem.fauxBold?'bold':null}catch(e){}
+        try{_style.fontStyle=textItem.fauxItalic?'italic':null}catch(e){}
+        try{_style.lineHeight=textItem.leading.as('px')||null}catch(e){}
+        try{_style.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?null:'underline' }catch(e){}
+        if(textItem.justification === Justification.CENTER){
+            _style.textAlign = 'center';
+        }else if(textItem.justification === Justification.RIGHT){
+            _style.textAlign = 'right';
+        }
+        _style.color = [
+            Math.round(textItem.color.rgb.red),
+            Math.round(textItem.color.rgb.green),
+            Math.round(textItem.color.rgb.blue),
+            ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
+        ];
+        _style.fontSize = Math.round(textItem.size.as('px'));
+        if(_vnode.bounds.height<_style.fontSize*1.3) _vnode.style.whiteSpace = 'nowrap';
+        _style.textWidth = Math.round(textItem.width.as('px'));
+        _style.textHeight = Math.round(textItem.height.as('px'));
+        _vnode.text = {
+            text:textItem.contents.replace(/\s/g,' '),
+            type:textItem.kind === TextType.POINTTEXT?'text':'textBox'
+        };
+        _vnode.textType = textItem.kind === TextType.POINTTEXT?'text':'textBox';
+        return true;
+    }
+    return false;
+}
 function updateEffects(vnode) {
     if(vnode.layerEffects){
         updateShadow(vnode);
@@ -371,39 +422,6 @@ function updateShadow(vnode) {
         vnodeObj.vnode[vnode.id].style.boxShadow = [h_shadow,v_shadow,blur,spread,color];
     }
 }
-function updateText(vnode) {
-    var activeLayer = app.activeDocument.activeLayer;
-    var _vnode = vnodeObj.vnode[vnode.id];
-    var _style = _vnode.style;
-    if(vnode.type === 'textLayer'){
-        var textItem = activeLayer.textItem;
-        try{_style.fontWeight=textItem.fauxBold?'bold':null}catch(e){}
-        try{_style.fontStyle=textItem.fauxItalic?'italic':null}catch(e){}
-        try{_style.lineHeight=textItem.leading.as('px')||null}catch(e){}
-        try{_style.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?null:'underline' }catch(e){}
-        if(textItem.justification === Justification.CENTER){
-            _style.textAlign = 'center';
-        }else if(textItem.justification === Justification.RIGHT){
-            _style.textAlign = 'right';
-        }
-        _style.color = [
-            Math.round(textItem.color.rgb.red),
-            Math.round(textItem.color.rgb.green),
-            Math.round(textItem.color.rgb.blue),
-            ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
-        ];
-        _style.fontSize = Math.round(textItem.size.as('px'));
-        _style.textWidth = Math.round(textItem.width.as('px'));
-        _style.textHeight = Math.round(textItem.height.as('px'));
-        _vnode.text = {
-            text:textItem.contents.replace(/\s/g,' '),
-            type:textItem.kind === TextType.POINTTEXT?'text':'textBox'
-        };
-        _vnode.textType = textItem.kind === TextType.POINTTEXT?'text':'textBox';
-        return true;
-    }
-    return false;
-}
 function setDirection(vnode) {
     if(vnode.layers&&vnode.layers.length>1){
         var direction = [0,0];
@@ -424,173 +442,6 @@ function setDirection(vnode) {
             vnodeObj.vnode[vnode.id].style.flexDirection = 'column';
         }
     }
-}
-
-
-
-
-function parseVnode2(vnode,parentVnode) {
-    if(vnode.file){
-        vnode.name = 'app';
-        vnode.visible = true;
-        vnode.file = vnode.file.replace(/\\/g,'\\\\');
-        vnode.height = vnode.bounds.bottom = app.activeDocument.height.as("px");
-        vnode.width = vnode.bounds.right = app.activeDocument.width.as("px");
-    }else{
-        updateStyle(vnode,parentVnode);
-    }
-    if(vnode.layers){
-        var _child = vnode.layers[vnode.layers.length-1];
-        if((!_child.layers)&&(_child.type!=='textLayer')){
-            updateBounds(_child,vnode);
-            if(
-                _child.boundsWithParent.left ===0&&
-                _child.boundsWithParent.top ===0&&
-                _child.boundsWithParent.right ===0&&
-                _child.boundsWithParent.bottom ===0
-            ){
-                vnode.backgroundStyle = vnode.layers.pop();
-                updateStyle(_child,vnode);
-            }
-        }
-        for(var i = 0;i<vnode.layers.length;i++){
-            parseVnode(vnode.layers[i],vnode);
-        }
-        if(vnode.layers.length===1&&vnode.layers[0].type==='textLayer'){
-            vnode.text = vnode.layers.pop();
-        }
-        checkDirection(vnode);
-    }
-}
-function checkDirection2(vnode) {
-    if(!vnode.style)vnode.style = {};
-    vnode.style.flexDirection = 'row';
-    vnode.style.flexWrap = 'nowrap';
-    if(vnode.layers.length>1){
-        var first = vnode.layers[0];
-        var second = vnode.layers[1];
-        if(first.boundsWithParent.bottom>second.boundsWithParent.bottom+second.height){
-            vnode.style.flexDirection = 'column';
-        }else if(vnode.layers.length>2){
-            var third = vnode.layers[2];
-            if(first.boundsWithParent.right<third.boundsWithParent.right+second.width){
-                vnode.style.flexWrap = 'wrap';
-            }
-        }
-    }else{
-        vnode.style.flexDirection = 'none';
-    }
-}
-function updateStyle2(vnode,parentVnode) {
-    var activeLayer = app.activeDocument.activeLayer;
-    updateBounds(vnode,parentVnode);
-    if(
-        vnode.type === 'shapeLayer'&&
-        vnode.path.pathComponents.length === 1&&
-        (
-            vnode.path.pathComponents[0].origin.type === 'rect'||
-            vnode.path.pathComponents[0].origin.type === 'ellipse'||
-            vnode.path.pathComponents[0].origin.type === 'roundedRect'||
-            (vnode.path.pathComponents[0].origin.type === 'line' && Math.min(vnode.width,vnode.height)<=2)
-        )
-    ){
-        vnode.fill.color.alpha = ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1;
-        if(!vnode.strokeStyle){
-            vnode.strokeStyle = {
-                type:vnode.path.pathComponents[0].origin.type,
-                strokeEnabled:false,
-                fillEnabled:true,
-                strokeColor:{red:0,green:0,blue:0,alpha:0},
-                fillColor:vnode.fill.color,
-            }
-        }else{
-            vnode.strokeStyle.type = vnode.path.pathComponents[0].origin.type;
-            vnode.strokeStyle.strokeColor = vnode.strokeStyle.strokeStyleContent.color;
-            vnode.strokeStyle.strokeColor.alpha = (activeLayer.opacity/100).toFixed (2)*1;
-            delete vnode.strokeStyle.strokeStyleContent;
-            vnode.strokeStyle.fillColor = vnode.fill.color;
-        }
-        delete vnode.fill;
-        switch (vnode.strokeStyle.type) {
-            case 'rect': case 'line':
-                vnode.strokeStyle.radii = 0;
-                break;
-            case 'ellipse':
-                vnode.strokeStyle.radii = '50%';
-                break;
-            case 'roundedRect':
-                var radii = vnode.path.pathComponents[0].origin.radii;
-                if(radii[0]===radii[1]&&radii[0]===radii[2]&&radii[0]===radii[3]){
-                    if(radii[0]) vnode.strokeStyle.radii = [radii[0]];
-                    else  vnode.strokeStyle.radii = 0;
-                }else{
-                    vnode.strokeStyle.radii = [
-                        radii[3],
-                        radii[0],
-                        radii[1],
-                        radii[2],
-                    ];
-                }
-                break;
-        }
-        delete vnode.path;
-        vnode.style = vnode.strokeStyle;
-        delete vnode.strokeStyle;
-    }else if(vnode.type === 'textLayer'){
-        //文字
-        var textItem = activeLayer.textItem;
-        vnode.text = textItem.contents.replace(/\s/g,' ');
-        try{ textItem.bold = textItem.fauxBold; }catch(e){ textItem.bold = false; }
-        try{ textItem.italic = textItem.fauxItalic; }catch(e){ textItem.italic = false; }
-        try{ textItem.lineHeight = textItem.leading.as('px') }catch(e){ textItem.lineHeight = 'auto'; }
-        try{ textItem.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?'none':'underline' }catch(e){ textItem.textDecoration = 'none'; }
-        textItem.textAlign = 'left';
-        if(textItem.justification === Justification.CENTER){
-            textItem.textAlign = 'center';
-        }else if(textItem.justification === Justification.RIGHT){
-            textItem.textAlign = 'right';
-        }
-        vnode.style = {
-            color:{
-                red:textItem.color.rgb.red,
-                green:textItem.color.rgb.green,
-                blue:textItem.color.rgb.blue,
-                alpha:((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1,
-            },
-            size:Math.round(textItem.size.as('px')),
-            direction:textItem.direction===Direction.HORIZONTAL?"horizontal":"vertical",
-            bold:textItem.bold,
-            italic:textItem.italic,
-            lineHeight:textItem.lineHeight,
-            kind:textItem.kind === TextType.POINTTEXT?'text':'textBox',
-            bounds:{
-                top:textItem.position[1].as('px'),
-                left:textItem.position[0].as('px'),
-                bottom:textItem.height.as('px')+textItem.position[0].as('px'),
-                right:textItem.width.as('px')+textItem.position[0].as('px'),
-            },
-            textAlign:textItem.textAlign,
-            textDecoration:textItem.textDecoration,
-            textDecoration:textItem.textDecoration,
-        };
-    }else if(vnode.type !== 'layerSection'){
-        //不是普通形状
-        if(vnode.smartObject)delete vnode.smartObject;
-        copyLayer();
-        var name = vnode.name.replace(regRule,'');
-        vnode.style = {
-            backgroundImage:name+'.'+vnode.id,
-        };
-        if(vnode.name.indexOf('.jpg')>=0){
-            vnode.style.backgroundImage+='.jpg';
-            savePNG(vnode.style.backgroundImage);
-        }else{
-            vnode.style.backgroundImage+='.png';
-            saveJPG(vnode.style.backgroundImage);
-        }
-        app.activeDocument.close(SaveOptions.DONOTSAVECHANGES);
-    }
-    if(vnode.strokeStyle)delete vnode.strokeStyle;
 }
 function copyLayer() {
     //复制图层

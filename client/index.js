@@ -41,7 +41,6 @@ exportButton.addEventListener("click", ()=>{
                         }
                         pullCode();
                         vNodeCache = JSON.parse(result);
-                        console.log(vNodeCache);
                         createVUE(vNodeCache);
                     });
                 });
@@ -183,7 +182,14 @@ function getBackgroundStyle(nodeObj,tab=0) {
     const borderRadius = getStyleValue(background.style.borderRadius);
     if(borderRadius) style += `${tabSpace(tab + 1)}border-radius: ${borderRadius};\n`;
     if(background.style.backgroundColor) style += `${tabSpace(tab + 1)}background: ${getColor(background.style.backgroundColor)};\n`;
-    if(background.style.backgroundImage) style += `${tabSpace(tab + 1)}background-image: url("../assets/${nodeObj.style.backgroundImage}");\n`;
+    else if(background.style.backgroundImage){
+        style += `${tabSpace(tab + 1)}background: url("../assets/${nodeObj.style.backgroundImage}") no-repeat center;\n`;
+        if(nodeObj.background&&typeof nodeObj.text === 'number'){
+            style += `${tabSpace(tab + 1)}background-size: 100% 100%;\n`;
+        }else{
+            style += `${tabSpace(tab + 1)}background-size: contain;\n`;
+        }
+    }
     if(background.style.boxShadow) style += `${tabSpace(tab + 1)}box-shadow: ${background.style.boxShadow[0]}rpx ${background.style.boxShadow[1]}rpx ${background.style.boxShadow[2]}rpx ${background.style.boxShadow[3]?(background.style.boxShadow[3]+'rpx '):''}${getColor(background.style.boxShadow[4])};\n`;
     return style;
 }
@@ -195,6 +201,7 @@ function getTextStyle(nodeObj,tab=0) {
     if(text.style.textAlign) style += `${tabSpace(tab + 1)}text-align: ${text.style.textAlign};\n`;
     if(text.style.fontWeight) style += `${tabSpace(tab + 1)}font-weight: ${text.style.fontWeight};\n`;
     if(text.style.fontStyle) style += `${tabSpace(tab + 1)}font-style: ${text.style.fontStyle};\n`;
+    if(text.style.whiteSpace) style += `${tabSpace(tab + 1)}white-space: ${text.style.whiteSpace};\n`;
     if(text.style.textDecoration) style += `${tabSpace(tab + 1)}text-decoration: ${text.style.textDecoration};\n`;
     if(text.style.color) style += `${tabSpace(tab + 1)}color: ${getColor(text.style.color)};\n`;
     return style;
