@@ -208,7 +208,22 @@ function createStyle(vNode,tab=0) {
         style += `${tabSpace(tab + 1)}position: relative;\n`;
         if (nodeObj.style.display) style += `${tabSpace(tab + 1)}display: ${nodeObj.style.display};\n`;
         else if (!nodeObj.text) style += `${tabSpace(tab + 1)}display: flex;\n`;
-        if(nodeObj.style.flexDirection) style += `${tabSpace(tab + 1)}flex-direction: ${nodeObj.style.flexDirection};\n`;
+        if(nodeObj.style.flexDirection) {
+            if(vNode.parentID!==null){
+                const parent = vNodeCache.vnode[vNode.parentID];
+                if(parent.bounds.width === nodeObj.bounds.width){
+                    nodeObj.style.width = '100%';
+                }
+            }
+            style += `${tabSpace(tab + 1)}flex-direction: ${nodeObj.style.flexDirection};\n`;
+        }else{
+            if(vNode.parentID!==null){
+                const parent = vNodeCache.vnode[vNode.parentID];
+                if(parent.bounds.height === nodeObj.bounds.height){
+                    nodeObj.style.height = '100%';
+                }
+            }
+        }
         if(nodeObj.style.alignItems) style += `${tabSpace(tab + 1)}align-items: ${nodeObj.style.alignItems};\n`;
         else style += `${tabSpace(tab + 1)}align-items: center;\n`;
         if(nodeObj.style.justifyContent) style += `${tabSpace(tab + 1)}justify-content: ${nodeObj.style.justifyContent};\n`;
@@ -232,8 +247,8 @@ function createStyle(vNode,tab=0) {
         padding = getStyleValue(padding);
         if(padding) style += `${tabSpace(tab + 1)}padding: ${padding};\n`;
     }else{
-        if(nodeObj.style.width) style += `${tabSpace(tab + 1)}width: ${nodeObj.style.width}rpx;\n`;
-        if(nodeObj.style.height) style += `${tabSpace(tab + 1)}height: ${nodeObj.style.height}rpx;\n`;
+        if(nodeObj.style.width) style += `${tabSpace(tab + 1)}width: ${typeof nodeObj.style.width==='string'?nodeObj.style.width:(nodeObj.style.width+'rpx')};\n`;
+        if(nodeObj.style.height) style += `${tabSpace(tab + 1)}height: ${typeof nodeObj.style.height==='string'?nodeObj.style.height:(nodeObj.style.height+'rpx')};\n`;
         const padding = getStyleValue(nodeObj.style.padding);
         if(padding) style += `${tabSpace(tab + 1)}padding: ${padding};\n`;
     }
