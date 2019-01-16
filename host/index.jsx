@@ -367,14 +367,16 @@ function updateText(vnode) {
             ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
         ];
         _style.fontSize = Math.round(textItem.size.as('px'));
-        if(_vnode.bounds.height<_style.fontSize*1.3) _vnode.style.whiteSpace = 'nowrap';
         _style.textWidth = Math.round(textItem.width.as('px'));
         _style.textHeight = Math.round(textItem.height.as('px'));
         _vnode.text = {
             text:textItem.contents.replace(/\s/g,' '),
             type:textItem.kind === TextType.POINTTEXT?'text':'textBox'
         };
-        _vnode.textType = textItem.kind === TextType.POINTTEXT?'text':'textBox';
+        if(_vnode.bounds.height<_style.fontSize*1.3) _vnode.style.whiteSpace = 'nowrap';
+        else if(_vnode.text.type==='textBox'&&!_style.textAlign){
+            _style.width = activeLayer.boundsNoEffects[2].as('px')-activeLayer.boundsNoEffects[0].as('px');
+        }
         return true;
     }
     return false;
