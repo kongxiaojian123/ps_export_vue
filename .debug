@@ -1,5 +1,5 @@
 <ExtensionList>
-    <Extension Id="f2e.tool.panel">
+    <Extension Id="flex.tool.panel">
        <HostList>
            <Host Name="PHXS" Port="8088"/>
            <Host Name="PHSP" Port="8088"/>
