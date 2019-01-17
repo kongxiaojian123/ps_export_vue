@@ -18,6 +18,7 @@ function exportDocument(assetsPath){
     info.height = info.bounds.bottom;
     vnodeObj.structure = mapVnode(info,null);
     parseVnode(vnodeObj.structure);
+    parseRootWrap(vnodeObj.structure);
     return toJSON(vnodeObj);
 }
 function getInfo() {
@@ -234,7 +235,33 @@ function parseVnode(currentVnode) {
             setJustifyContent(currentVnode.children[i]);
         }
     }
-
+}
+function parseRootWrap(currentVnode) {
+    if(currentVnode.children&&currentVnode.children.length===1&&currentVnode.children[0].children&&currentVnode.children[0].children.length===1&&!currentVnode.parentID){
+        var parent = vnodeObj.vnode[currentVnode.vnodeID];
+        var vnode = vnodeObj.vnode[currentVnode.children[0].vnodeID];
+        var child = vnodeObj.vnode[currentVnode.children[0].children[0].vnodeID];
+        if(vnode.style.flexWrap&&(parent.style.padding||vnode.style.margin)){
+            var vnode_margin = vnode.style.margin||[0,0,0,0];
+            var parent_padding = parent.style.padding||[0,0,0,0];
+            child.style.margin = [parent_padding[0],0,0,vnode_margin[3]];
+            vnode.style.padding = [0,parent_padding[1],parent_padding[2],0];
+            vnode.style.margin = null;
+            parent.style.padding = null;
+            if(!(child.style.margin[0]||
+                child.style.margin[1]||
+                child.style.margin[2]||
+                child.style.margin[3])){
+                child.style.margin = null;
+            }
+            if(!(vnode.style.padding[0]||
+                vnode.style.padding[1]||
+                vnode.style.padding[2]||
+                vnode.style.padding[3])){
+                vnode.style.padding = null;
+            }
+        }
+    }
 }
 function updateBounds(vnode,parentVnode) {
     selectLayerById(vnode.id);
