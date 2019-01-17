@@ -10,7 +10,7 @@ const units = document.querySelectorAll('.unit');
 let unit = 'rpx';
 let vNodeCache= null;
 let today  = 0;
-var regRule = new RegExp('\.(vue|jpg)','g');
+var regRule = new RegExp('\.(wrap|jpg)','g');
 if(localStorage.getItem('gitDate')){
     const timeDate = new Date(localStorage.getItem('gitDate')*1);
     timeDiv.innerHTML = `${timeDate.getFullYear()}.${timeDate.getMonth()+1}.${timeDate.getDate()}`;
@@ -215,6 +215,7 @@ function createStyle(vNode,tab=0) {
         style += `${tabSpace(tab + 1)}position: relative;\n`;
         if (nodeObj.style.display) style += `${tabSpace(tab + 1)}display: ${nodeObj.style.display};\n`;
         else if (!nodeObj.text) style += `${tabSpace(tab + 1)}display: flex;\n`;
+        if(nodeObj.style.flexWrap)  style += `${tabSpace(tab + 1)}flex-wrap: ${nodeObj.style.flexWrap};\n`;
         if(nodeObj.style.flexDirection) {
             if(vNode.parentID!==null){
                 const parent = vNodeCache.vnode[vNode.parentID];
@@ -229,6 +230,12 @@ function createStyle(vNode,tab=0) {
                 if(parent.bounds.height === nodeObj.bounds.height){
                     nodeObj.style.height = '100%';
                 }
+            }
+        }
+        if(vNode.parentID!==null){
+            const parent = vNodeCache.vnode[vNode.parentID];
+            if(parent.style.flexWrap){
+                nodeObj.style.width = nodeObj.bounds.width;
             }
         }
         if(nodeObj.style.alignItems) style += `${tabSpace(tab + 1)}align-items: ${nodeObj.style.alignItems};\n`;
