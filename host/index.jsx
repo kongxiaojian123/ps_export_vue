@@ -266,6 +266,17 @@ function parseRootWrap(currentVnode) {
         }
     }
 }
+function getPrevNode(currentIndex,parent) {
+    var prev = null;
+    for(var i = currentIndex-1;i>=0;i--){
+        var _vnode = parent.layers[i];
+        if(!_vnode.clipped){
+            prev = _vnode;
+            break;
+        }
+    }
+    return prev;
+}
 function updateBounds(vnode,parentVnode) {
     selectLayerById(vnode.id);
     var activeLayer = app.activeDocument.activeLayer;
@@ -291,9 +302,10 @@ function updateBounds(vnode,parentVnode) {
     vnode.centerY = vnode.boundsWithParent.top+vnode.height/2;
     for(var i = 0;i<parentVnode.layers.length;i++){
         if(vnode===parentVnode.layers[i]){
-            if(i>0){
-                vnode.offsetX=vnode.bounds.left-parentVnode.layers[i-1].bounds.right;
-                vnode.offsetY=vnode.bounds.top-parentVnode.layers[i-1].bounds.bottom;
+            var prev = getPrevNode(i,parentVnode);
+            if(prev){
+                vnode.offsetX=vnode.bounds.left-prev.bounds.right;
+                vnode.offsetY=vnode.bounds.top-prev.bounds.bottom;
             }else{
                 vnode.offsetX=vnode.boundsWithParent.left;
                 vnode.offsetY=vnode.boundsWithParent.top;
@@ -501,7 +513,9 @@ function setDirection(vnode) {
     if(vnode.layers&&vnode.layers.length>1){
         var direction = [0,0];
         for(var i = 1;i<vnode.layers.length;i++){
-            var first = vnode.layers[i-1];
+            if(!vnodeObj.vnode[vnode.id]) continue;
+            var first = getPrevNode(i,vnode);
+            if(!first) continue;
             var second = vnode.layers[i];
             if(first.bounds.bottom < second.bounds.top){
                 direction[1]++;
