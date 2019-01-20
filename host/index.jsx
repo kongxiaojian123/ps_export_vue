@@ -82,6 +82,7 @@ function selectLayerById(id){
     executeAction(stringIDToTypeID("select"), desc,DialogModes.NO);
 }
 function mapVnode(currentVnode, parentVnode) {
+    if(currentVnode.clipped)return null;
     if(parentVnode){
         updateBounds(currentVnode,parentVnode);
         rename(currentVnode);
@@ -144,7 +145,8 @@ function mapVnode(currentVnode, parentVnode) {
     if(currentVnode.layers){
         vnodeStructure.children = [];
         for(var i = 0;i<currentVnode.layers.length;i++){
-            vnodeStructure.children.push(mapVnode(currentVnode.layers[i],currentVnode));
+            var child = mapVnode(currentVnode.layers[i],currentVnode);
+            if(child) vnodeStructure.children.push(child);
         }
         var lastChild = currentVnode.layers[currentVnode.layers.length-1];
         if(
