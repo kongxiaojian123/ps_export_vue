@@ -152,13 +152,14 @@ function mapVnode(currentVnode, parentVnode) {
             lastChild.boundsWithParent.top === 0&&
             lastChild.boundsWithParent.right === 0&&
             lastChild.boundsWithParent.bottom === 0&&
-            lastChild.type !== 'layerSection'
+            lastChild.type !== 'layerSection'&&
+            lastChild.type !== 'textLayer'
         ){
             vnodeStructure.children.pop();
             vnodeObj.vnode[currentVnode.id].background = lastChild.id;
         }
         if(vnodeStructure.children.length===1){
-            if(currentVnode.layers[0].type === 'textLayer'){
+            if(currentVnode.layers[0].type === 'textLayer'&&vnodeObj.vnode[currentVnode.id].background){
                 vnodeStructure.children.pop();
                 vnodeObj.vnode[currentVnode.id].text = currentVnode.layers[0].id;
             }
