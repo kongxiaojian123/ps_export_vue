@@ -1,13 +1,22 @@
 ﻿var _assetsPath = '';
+var _hash = '';
 var regRule = new RegExp('^(!%|vue|jpg|box)$');
 var regRule2 = new RegExp('\.(!%|vue|jpg|box)','g');
 var _documentWidth,_documentHeight;
 //exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
-function exportDocument(assetsPath){
+function getDocumentName(){
+    try{
+        return app.activeDocument.fullName;
+    }catch(e){
+        return app.activeDocument.name;
+    }
+}
+function exportDocument(assetsPath,hash){
     if(app.activeDocument.width.type==='%'){
         alert('Error: 文档所用单位不能为 "%"');
         return;
     }
+    _hash = hash;
     _assetsPath = assetsPath;
     _documentWidth = app.activeDocument.width.as("px");
     _documentHeight = app.activeDocument.height.as("px");
@@ -62,10 +71,12 @@ function setVNode(layer,root) {
         if(className[i].search(regRule)>=0){
             className.splice(i,1);
             i--;
-        }else if(className[i].search(/ps-\d+/)<0){
+        }else if(className[i].search(/ps\-[0-9A-Za-z]+/)<0){
             vueName += className[i].replace(/^[a-z]/,function(a){return a.toUpperCase()});
-        }else if(className[i].search(/ps-\d+/)>=0){
+        }else if(className[i].search(/ps\-[0-9A-Za-z]+/)>=0){
             psName = className[i];
+            className.splice(i,1);
+            i--;
         }
     }
     return {
@@ -664,24 +675,10 @@ function rename(layer) {
     var save_name = [];
     var num = 0;//中文文字次数
     for (var i = 0;i<names.length;i++){
-        if(names[i].search(regRule)<0){
-            var id = names[i].match(/ps-(\d+)/);
-            if(id&&id[1] !== layer.id){
-                names[i] = 'ps-'+layer.id;
-            }
-            if(names[i].search(/[^\w\-]/)>=0||names[i].search(/^(\d+)$/)>=0||!names[i]){
-                if(!num){
-                    num++;
-                    names[i] = 'ps-'+layer.id;
-                    continue;
-                }
-                num++;
-                names.splice(i--,1);
-            }
+        if(names[i]&&names[i].search(/[^0-9A-Za-z]/)<0&&names[i].search(/ps\-[0-9A-Za-z]+/)<0){
+            save_name.push(names[i]);
         }
-    }
-    layer.name = names.join('.');
-    if(layer.name.indexOf('ps-'+layer.id)<0){
-        layer.name += '.ps-' + layer.id;
-    }
-}
+    } 
+    save_name.push('ps-' +_hash+layer.id);
+    layer.name = save_name.join('.');
+} 

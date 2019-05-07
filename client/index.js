@@ -33,16 +33,18 @@ exportButton.addEventListener("click", ()=>{
                 if (err) {
                     return console.error(err);
                 }
-                csInterface.evalScript(`exportDocument("${path.resolve(save_path,'assets').replace(/\\/g,'\\\\')}")`,(result)=>{
-                    fs.mkdir(path.resolve(save_path,'js'),function(err) {
-                        if (err) {
-                            return console.error(err);
-                        }
-                        pullCode();
-                        const vNode = JSON.parse(result);
-                        documentBounds = vNode.bounds;
-                        // console.log(vNode);
-                        createVUE(vNode);
+                csInterface.evalScript("getDocumentName()",(name)=>{
+                    csInterface.evalScript(`exportDocument("${path.resolve(save_path,'assets').replace(/\\/g,'\\\\')}","${crc16(name)}")`,(result)=>{
+                        fs.mkdir(path.resolve(save_path,'js'),function(err) {
+                            if (err) {
+                                return console.error(err);
+                            }
+                            pullCode();
+                            const vNode = JSON.parse(result);
+                            documentBounds = vNode.bounds;
+                            // console.log(vNode);
+                            createVUE(vNode);
+                        });
                     });
                 });
             });
@@ -52,7 +54,6 @@ exportButton.addEventListener("click", ()=>{
 function pullCode() {
     today = new Date();
     today.setHours(0,0,0,0);
-    console.log('test');
     fs.exists(path.resolve(__dirname,'.git'),(isExist)=>{
         if(isExist){
             const gitDate = localStorage.getItem('gitDate')||0;
@@ -80,6 +81,7 @@ function updateNode(cwd) {
     });
 }
 function createVUE(vNode,fNode) {
+    console.log(vNode);
     let childHtml = '';
     let modules = [];
     const lastNodeIsBackground = checkLastChild(vNode);
@@ -100,7 +102,7 @@ function createVUE(vNode,fNode) {
 
 
     const html = `<template>
-    <div class="${vNode.className.join(' ')}">
+    <div data-${vNode.psName} class="${vNode.className.join(' ')}">
         ${childHtml}${vNode.root ? `<Loading :assets="loadAssets" @complete="loadComplete"/>
     ` : ""}</div>
 </template>
@@ -185,18 +187,16 @@ function setStyle(vNode,fNode,index,tabNum) {
             style.height = `${(vNode.bounds.h).toFixed(6)*1}${unit}`;
         }
     }
-    let className = vNode.psName;
-    // if(vNode.className.length ===1) className = vNode.className[0];
-    // else if(vNode.className.length ===2){
-    //     if(vNode.className[0].search(/^ps-\d+$/)>=0){
-    //         className = vNode.className[1];
-    //     }else{
-    //         className = vNode.className[0];
-    //     }
-    // }
-    let styleStr = `${index?tabSpace(tabNum):''}.${className}{`;
+    let className = '';
+    if(vNode.psName.search(/ps\-[0-9A-Za-z]+/)>=0){
+        if(vNode.className.length) className = `.${vNode.className[0]}`;
+        className += `[data-${vNode.psName}]`;
+    }else{
+        className = `.${vNode.className[0]}`;
+    }
+    let styleStr = `${index?tabSpace(tabNum):''}${className}{`;
     Object.keys(style).forEach(item=>{
-        styleStr += `${tabSpace(tabNum+1)}${item}:${style[item]};`;
+        styleStr += `${tabSpace(tabNum+1)}${item}:${style[item]};`; 
     });
     if(vNode.child){
         vNode.child.forEach((item,index)=>{
@@ -236,9 +236,9 @@ function createHTML(vNode,fNode,isLast,tabNum){
                 child = createHTML(item,vNode,index===vNode.child.length-1,tabNum+1) + child;
             }
         });
-        return `<div class="${vNode.className.join(' ')}">${child?tabSpace(tabNum+1):''}${child.replace(/    $/,'')}</div>${tabSpace(tabNum)}`
+        return `<div data-${vNode.psName} class="${vNode.className.join(' ')}">${child?tabSpace(tabNum+1):''}${child.replace(/    $/,'')}</div>${tabSpace(tabNum)}`
     }else{
-        return `<div class="${vNode.className.join(' ')}"></div>${tabSpace(tabNum)}`
+        return `<div data-${vNode.psName} class="${vNode.className.join(' ')}"></div>${tabSpace(tabNum)}`
     }
 }
 function getModule(vNode,list){
