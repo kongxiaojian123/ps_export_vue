@@ -81,7 +81,6 @@ function updateNode(cwd) {
     });
 }
 function createVUE(vNode,fNode) {
-    console.log(vNode);
     let childHtml = '';
     let modules = [];
     const lastNodeIsBackground = checkLastChild(vNode);
@@ -188,7 +187,7 @@ function setStyle(vNode,fNode,index,tabNum) {
         }
     }
     let className = '';
-    if(vNode.psName.search(/ps\-[0-9A-Za-z]+/)>=0){
+    if(vNode.name.search(/\.vue/)<0){
         if(vNode.className.length) className = `.${vNode.className[0]}`;
         className += `[data-${vNode.psName}]`;
     }else{
