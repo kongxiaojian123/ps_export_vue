@@ -105,24 +105,17 @@ function createVUE(vNode,fNode) {
         ${childHtml}${vNode.root ? `<Loading :assets="loadAssets" @complete="loadComplete"/>
     ` : ""}</div>
 </template>
-<script >${importStr}
-    ${vNode.root?`import Loading from 'Components/loading/App';
-    `:""}export default {
-        data(){
-            return{
-                ${vNode.root?'loadAssets:require.context("../assets", true, /\\.(png|jpg)$/i)':""}
-            }
-        },
-        computed:{
-        },
-        methods:{
-            ${vNode.root?`loadComplete(){
-                console.log('load complete');
-            }`:""}
-        },
-        components:{
-            ${vNode.root?"Loading, ":""}${modules.toString()}
-        }
+<script lang="ts">
+    import { Vue, Component, Watch, Emit, Prop, } from 'vue-property-decorator';
+    ${vNode.root?`import Loading from 'loading/App.vue';`:""}${importStr}
+    @Component({components:{ 
+        ${vNode.root?"Loading, ":""}${modules.toString()}
+    }})
+    export default class ${vNode.vueName} extends Vue {
+        ${vNode.root?'private loadAssets:RequireContext=require.context("../assets", true, /\.(png|jpg)$/i);':""}
+        ${vNode.root?`private loadComplete(){
+            console.log('load complete');
+        }`:""}
     };
 </script>
 <style lang="postcss" scoped>${setStyle(vNode,fNode,1,0)}
