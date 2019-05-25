@@ -675,7 +675,7 @@ function rename(layer) {
     var save_name = [];
     var num = 0;//中文文字次数
     for (var i = 0;i<names.length;i++){
-        if(names[i]&&names[i].search(/[^0-9A-Za-z]/)<0&&names[i].search(/ps\-[0-9A-Za-z]+/)<0){
+        if(names[i]&&names[i].search(/[^\w\-]/)<0&&names[i].search(/ps\-[0-9A-Za-z]+/)<0){
             save_name.push(names[i]);
         }
     } 
