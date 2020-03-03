@@ -102,8 +102,10 @@ function createVUE(vNode,fNode) {
 
     const html = `<template>
     <div data-${vNode.psName} class="${vNode.className.join(' ')}">
-        ${childHtml}${vNode.root ? `<Loading :assets="loadAssets" @complete="loadComplete"/>
-    ` : ""}</div>
+        ${childHtml}${vNode.root?`<transition-group name="fadeout">
+            <Loading v-if="pageIndex===-1" key="loading" :assets="loadAssets" @complete="loadComplete"/>
+        </transition-group>
+    `:""}</div>
 </template>
 <script lang="ts">
     import { Vue, Component, Watch, Emit, Prop, } from 'vue-property-decorator';
@@ -112,9 +114,13 @@ function createVUE(vNode,fNode) {
         ${vNode.root?"Loading, ":""}${modules.toString()}
     }})
     export default class ${vNode.vueName} extends Vue {
-        ${vNode.root?'private loadAssets:RequireContext=require.context("../assets", true, /\.(png|jpg)$/i);':""}
-        ${vNode.root?`private loadComplete(){
-            console.log('load complete');
+        ${vNode.root?`private pageIndex:number=-1;
+        private loadAssets:RequireContext=require.context("../assets", true, /\.(png|jpg)$/i);
+        private loadComplete(){
+            this.setPage(0);
+        }
+        private setPage(index:number){
+            this.pageIndex = index;
         }`:""}
     };
 </script>
