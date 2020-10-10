@@ -398,11 +398,13 @@ function updateText(vnode) {
         try{_style.fontStyle=textItem.fauxItalic?'italic':null}catch(e){}
         try{_style.lineHeight=textItem.leading.as('px')||null}catch(e){}
         try{_style.textDecoration = textItem.underline===UnderlineType.UNDERLINEOFF?null:'underline' }catch(e){}
-        if(textItem.justification === Justification.CENTER){
-            _style.textAlign = 'center';
-        }else if(textItem.justification === Justification.RIGHT){
-            _style.textAlign = 'right';
-        }
+        try{
+            if(textItem.justification === Justification.CENTER){
+                _style.textAlign = 'center';
+            }else if(textItem.justification === Justification.RIGHT){
+                _style.textAlign = 'right';
+            }
+        }catch(e){}
         _style.color = [
             Math.round(textItem.color.rgb.red),
             Math.round(textItem.color.rgb.green),
@@ -410,8 +412,10 @@ function updateText(vnode) {
             ((activeLayer.opacity/100)*(activeLayer.fillOpacity/100)).toFixed (2)*1
         ];
         _style.fontSize = Math.round(textItem.size.as('px'));
-        _style.textWidth = Math.round(textItem.width.as('px'));
-        _style.textHeight = Math.round(textItem.height.as('px'));
+        try{
+            _style.textWidth = Math.round(textItem.width.as('px'));
+            _style.textHeight = Math.round(textItem.height.as('px'));
+        }catch(e){}
         _vnode.text = {
             text:textItem.contents.replace(/\s/g,' '),
             type:textItem.kind === TextType.POINTTEXT?'text':'textBox'
