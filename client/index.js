@@ -34,8 +34,6 @@ exportButton.addEventListener("click", ()=>{
                     return console.error(err);
                 }
                 csInterface.evalScript("getDocumentName()",(name)=>{
-                    console.log(name);
-                    return;
                     csInterface.evalScript(`exportDocument("${path.resolve(save_path,'assets').replace(/\\/g,'\\\\')}","0${crc16(name).toLowerCase()}")`,(result)=>{
                         fs.mkdir(path.resolve(save_path,'js'),function(err) {
                             if (err) {
