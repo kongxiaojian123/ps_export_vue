@@ -6,9 +6,9 @@ var _documentWidth,_documentHeight;
 //exportDocument('','d:\\KFC_PC\\Desktop\\ps_f2e\\assets');
 function getDocumentName(){
     try{
-        return app.activeDocument.fullName;
+        return app.activeDocument.fullName+app.activeDocument.id;
     }catch(e){
-        return app.activeDocument.name;
+        return app.activeDocument.name+app.activeDocument.id;
     }
 }
 function exportDocument(assetsPath,hash){
